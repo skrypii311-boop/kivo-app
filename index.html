@@ -103,99 +103,131 @@ nav button[aria-current="page"] svg{color:var(--ac)}
 #toast{position:absolute;left:50%;bottom:76px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.acts{align-items:flex-end;gap:22px}
+.col{display:flex;flex-direction:column;align-items:center}
+.cap{font-size:12px;color:var(--mu);margin-top:6px;text-align:center}
+.vibes{cursor:pointer;color:var(--tx)}
+.f{display:flex;gap:10px}.f>*{flex:1;min-width:0}
+label.l{display:block;font-size:13px;color:var(--mu);margin:14px 2px 6px}
+nav.off{display:none}
+.badge{display:inline-block;margin-bottom:8px;padding:3px 10px;border-radius:99px;background:var(--ac);color:var(--acx);font-size:12px;font-weight:700}
+.rule{display:flex;gap:14px;margin-bottom:10px;color:var(--tx)}
+.rule b{flex:none;min-width:34px}
+.err{color:#d9534f;font-size:13px;margin-top:10px;min-height:1em}
+.vf{display:inline-block;vertical-align:-2px;margin-left:5px;color:var(--ac)}
+.card .vf{color:#9DA9FF}
+.chh [data-act="reportchat"]{margin-left:auto}
+#sheet{max-height:88%;overflow-y:auto}
 </style>
 </head>
 <body>
 <div id="app">
-  <header><span class="logo">KIVO</span><span class="vibes" title="Вайбы"><span id="ico-bolt"></span><b id="vn">20</b></span></header>
+  <header><span class="logo">KIVO</span><button class="vibes" data-act="vibeinfo" aria-label="Что такое вайбы"><span id="ico-bolt"></span><b id="vn">–</b><span>вайбы</span></button></header>
   <main>
-    <section id="feed" class="on">
+    <section id="feed">
       <div class="stack" id="stack"></div>
       <div class="acts">
-        <button class="rb" data-act="nope" aria-label="Пропустить"><span data-i="x"></span></button>
-        <button class="rb sm" data-act="super" aria-label="Суперлайк за 5 вайбов"><span data-i="bolt"></span></button>
-        <button class="rb main" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button>
+        <div class="col"><button class="rb" data-act="nope" aria-label="Пропустить"><span data-i="x"></span></button><span class="cap">Пропустить</span></div>
+        <div class="col"><button class="rb sm" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 5</span></div>
+        <div class="col"><button class="rb main" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button><span class="cap">Нравится</span></div>
       </div>
     </section>
     <section id="chats"><h1>Пары</h1><div id="list"></div></section>
-    <section id="me">
-      <div class="me-h"><div class="av" id="myav" style="--h:230">М</div><div><h1 style="margin:0" id="myname">Макс</h1><small style="color:var(--mu)">Профиль виден только в ленте</small></div></div>
-      <div class="lbl">О себе</div>
-      <textarea id="mybio" rows="3" maxlength="140">Люблю длинные прогулки и плохое кино.</textarea>
-      <div class="lbl">Настроение</div>
-      <div class="tg" id="moods"></div>
-      <div class="lbl">Интересы</div>
-      <div class="tg" id="ints"></div>
-      <div class="ok"><span data-i="check"></span><span>Возраст 18+ подтверждён</span></div>
-      <button class="btn" style="margin-top:16px" data-act="save">Сохранить</button>
+    <section id="me" class="on">
+      <h1 id="meh">Создай анкету</h1>
+      <label class="l" for="fn">Имя</label><input id="fn" maxlength="30" autocomplete="off">
+      <div class="f"><div><label class="l" for="fa">Возраст</label><input id="fa" type="number" inputmode="numeric" min="18" max="99"></div>
+      <div><label class="l" for="fc">Город</label><input id="fc" maxlength="40" autocomplete="off"></div></div>
+      <label class="l" for="fb">О себе</label><textarea id="fb" rows="3" maxlength="140" placeholder="Пара фраз о тебе"></textarea>
+      <label class="l">Настроение</label><div class="tg" id="moods"></div>
+      <label class="l">Интересы (до 8)</label><div class="tg" id="ints"></div>
+      <div class="ok" id="vrow" style="display:none"></div>
+      <label class="chk" id="adultrow" style="margin-top:18px"><input type="checkbox" id="adult"> Мне есть 18 лет</label>
+      <div class="err" id="err" role="alert"></div>
+      <button class="btn" style="width:100%;margin:6px 0 10px" data-act="save">Сохранить</button>
     </section>
     <div id="chat"></div>
   </main>
-  <nav>
-    <button data-tab="feed" aria-current="page"><span data-i="cards"></span>Лента</button>
-    <button data-tab="chats"><span data-i="chat"></span>Пары<i class="dot" id="dot" hidden></i></button>
-    <button data-tab="me"><span data-i="user"></span>Профиль</button>
+  <nav class="off">
+    <button data-tab="feed"><span data-i="cards"></span>Лента</button>
+    <button data-tab="chats"><span data-i="chat"></span>Пары</button>
+    <button data-tab="me" aria-current="page"><span data-i="user"></span>Профиль</button>
   </nav>
   <div id="shade"></div><div id="sheet" role="dialog" aria-modal="true"></div>
   <div id="toast"></div>
-  <div id="gate">
-    <div class="logo">KIVO</div>
-    <h1>Только для 18+</h1>
-    <p>KIVO — знакомства для тех, кому исполнилось 18. Подтверди возраст, чтобы продолжить. Анкеты проверяются, на любую можно пожаловаться.</p>
-    <label class="chk"><input type="checkbox" id="age"> Мне есть 18 лет</label>
-    <button class="btn" id="go" disabled>Продолжить</button>
-  </div>
 </div>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
+var TG=window.Telegram&&window.Telegram.WebApp;
 var IC={x:'<path d="M6 6l12 12M18 6L6 18"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z"/>',chat:'<path d="M5 5h14v10H10l-5 4V5z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>',cards:'<rect x="5" y="4" width="14" height="16" rx="3"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>'};
 function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
 document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.dataset.i)});
 document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
-
-var P=[
-{n:"Алина",a:23,c:"Москва",b:"Бегаю по утрам, вечером хочу пасту и разговоры ни о чём.",i:["Бег","Кино","Кофе"],q:"Бейрут Gorillaz на репите.",h:18,m:1,r:"Привет! Ты тоже за кофе без сахара?"},
-{n:"Тимур",a:26,c:"Казань",b:"Фотографирую город, когда он ещё спит.",i:["Фото","Горы","Винил"],q:"Сборник Boards of Canada.",h:200,m:0,r:"Привет!"},
-{n:"Соня",a:21,c:"Санкт-Петербург",b:"Учусь на дизайнера, коллекционирую странные открытки.",i:["Арт","Книги","Выставки"],q:"Новый альбом Монеточки.",h:330,m:1,r:"Привет! Какую открытку тебе прислать?"},
-{n:"Даниил",a:24,c:"Москва",b:"Играю в настолки и плохо готовлю. Учусь лучше.",i:["Настолки","Кухня","Спорт"],q:"Что-то из 90-х, не скажу что.",h:140,m:0,r:"Привет!"},
-{n:"Мира",a:22,c:"Екатеринбург",b:"Езжу на велике, спорю про фильмы Линча.",i:["Велик","Кино","Музыка"],q:"Тишина между треками.",h:260,m:0,r:"Привет!"}
-];
-var deck=P.slice(),pairs=[],vibes=20,cur=null,chatLog={};
-var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"],INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня"];
+var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"];
+var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
+var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1;
 var $=function(s){return document.querySelector(s)};
-function hap(t){try{window.Telegram.WebApp.HapticFeedback.impactOccurred(t||"light")}catch(e){}}
-function toast(t){var e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('on')},1800)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function vf(p){return p.verified?'<span class="vf" title="Анкета подтверждена">'+ic('check',16)+'</span>':''}
+function hap(t){try{TG.HapticFeedback.impactOccurred(t||"light")}catch(e){}}
+function toast(t){var e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('on')},2200)}
 function sheet(h){$('#sheet').innerHTML=h;$('#shade').classList.add('on');$('#sheet').classList.add('on')}
 function closeSheet(){$('#shade').classList.remove('on');$('#sheet').classList.remove('on')}
 $('#shade').onclick=closeSheet;
+function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b)}
+  return fetch(path,o).then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;throw e}return d})})}
+function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
 
-/* age gate */
-try{if(localStorage.getItem('kivo18')==='1')$('#gate').style.display='none'}catch(e){}
-$('#age').onchange=function(){$('#go').disabled=!this.checked};
-$('#go').onclick=function(){$('#gate').style.display='none';try{localStorage.setItem('kivo18','1')}catch(e){}};
-
-/* tabs */
+/* вкладки */
 function tab(t){
   ['feed','chats','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
-  if(t==='chats')$('#dot').hidden=true;
+  if(t==='chats')loadPairs();
 }
-document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){tab(b.dataset.tab)}});
+document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){leaveChat();tab(b.dataset.tab)}});
 
-/* feed */
-function cardHTML(p){
-  return '<div class="ini">'+p.n[0]+'</div><span class="stamp l">Нравится</span><span class="stamp n">Дальше</span>'+
-  '<button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>'+
-  '<div class="ov"><h2>'+p.n+' <span>'+p.a+'</span></h2><div class="meta">'+p.c+'</div><div class="bio">'+p.b+'</div>'+
-  '<div class="chips">'+p.i.map(function(x){return '<span class="chip">'+x+'</span>'}).join('')+'</div>'+
-  '<div class="q"><b>Лучший трек этой недели</b>'+p.q+'</div></div>';
+/* анкета */
+function chips(id,list,multi,sel,max){
+  var box=$(id);box.innerHTML='';
+  list.forEach(function(t){var b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',sel.indexOf(t)>-1);
+    b.onclick=function(){var on=b.getAttribute('aria-pressed')==='true';
+      if(!multi)box.querySelectorAll('button').forEach(function(o){o.setAttribute('aria-pressed','false')});
+      if(multi&&!on&&box.querySelectorAll('[aria-pressed="true"]').length>=max){toast('Не больше '+max+' интересов');return}
+      b.setAttribute('aria-pressed',multi?String(!on):String(!on))};box.appendChild(b)});
 }
+function sel(id){return Array.prototype.map.call(document.querySelectorAll(id+' [aria-pressed="true"]'),function(b){return b.textContent})}
+function fillForm(p){
+  $('#fn').value=p.name||'';$('#fa').value=p.age||'';$('#fc').value=p.city||'';$('#fb').value=p.bio||'';
+  chips('#moods',MOODS,false,p.mood?[p.mood]:[]);chips('#ints',INTS,true,p.interests||[],8);
+}
+function save(){
+  var b={name:$('#fn').value.trim(),age:+$('#fa').value,city:$('#fc').value.trim(),bio:$('#fb').value.trim(),mood:sel('#moods')[0]||null,interests:sel('#ints'),adult:$('#adult').checked};
+  $('#err').textContent='';
+  if(!b.name||!b.city||!b.age){$('#err').textContent='Заполни имя, возраст и город';return}
+  if(b.age<18){$('#err').textContent='KIVO только для тех, кому 18 и больше';return}
+  if(!me&&!b.adult){$('#err').textContent='Подтверди, что тебе есть 18 лет';return}
+  api('/api/me',b).then(function(){return api('/api/me')}).then(function(d){
+    var first=!me;me=d;setVibes(d.vibes);fillForm(d);renderVerify();$('#adultrow').style.display='none';$('#meh').textContent='Профиль';
+    toast(first&&d.bonus?'Анкета создана. +'+d.bonus+' вайбов':'Сохранено');if(first)start()
+  }).catch(function(e){$('#err').textContent=e.message});
+}
+
+/* лента */
+function cardHTML(p){
+  return '<div class="ini">'+esc(p.name[0])+'</div><span class="stamp l">Нравится</span><span class="stamp n">Дальше</span>'+
+  '<button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>'+
+  '<div class="ov">'+(p.super?'<span class="badge">Поставил(а) тебе суперлайк</span>':'')+'<h2>'+esc(p.name)+' <span>'+p.age+'</span>'+vf(p)+'</h2>'+
+  '<div class="meta">'+esc(p.city)+(p.mood?', '+esc(p.mood):'')+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
+  '<div class="chips">'+p.interests.map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div></div>';
+}
+function loadFeed(){api('/api/feed').then(function(d){deck=d.items;draw()}).catch(function(e){toast(e.message)})}
 function draw(){
   var s=$('#stack');s.innerHTML='';
-  if(!deck.length){s.innerHTML='<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже или добавь интересов в профиле — лента обновится.</p></div>';$('.acts').style.display='none';return}
+  if(!deck.length){s.innerHTML='<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже: новые люди появляются каждый день.</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
   $('.acts').style.display='';
   deck.slice(0,2).reverse().forEach(function(p,i,a){
-    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.h);c.innerHTML=cardHTML(p);s.appendChild(c);
+    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.id%360);c.innerHTML=cardHTML(p);s.appendChild(c);
     if(i===a.length-1)drag(c);
   });
 }
@@ -203,61 +235,89 @@ function drag(c){
   var x0=0,dx=0,on=false,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n');
   c.onpointerdown=function(e){if(e.target.closest('.more'))return;on=true;x0=e.clientX;c.setPointerCapture(e.pointerId);c.style.transition='none'};
   c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;c.style.transform='translateX('+dx+'px) rotate('+dx/20+'deg)';L.style.opacity=Math.max(0,Math.min(1,dx/90));N.style.opacity=Math.max(0,Math.min(1,-dx/90))};
-  c.onpointerup=c.onpointercancel=function(){if(!on)return;on=false;if(Math.abs(dx)>100)fly(dx>0);else{c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0}dx=0};
+  c.onpointerup=c.onpointercancel=function(){if(!on)return;on=false;if(Math.abs(dx)>100)fly(dx>0?'like':'pass');else{c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0}dx=0};
 }
-function fly(like,sup){
+function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length)return;
-  if(sup){if(vibes<5){toast('Не хватает вайбов');return}vibes-=5;$('#vn').textContent=vibes}
-  c.style.transition='transform .25s,opacity .25s';c.style.transform='translateX('+(like?520:-520)+'px) rotate('+(like?16:-16)+'deg)';c.style.opacity=0;
-  hap();setTimeout(function(){decide(like,sup)},230);
+  if(action==='super'&&me.vibes<5){toast('Не хватает вайбов: суперлайк стоит 5');return}
+  var right=action!=='pass';
+  c.style.transition='transform .25s,opacity .25s';c.style.transform='translateX('+(right?520:-520)+'px) rotate('+(right?16:-16)+'deg)';c.style.opacity=0;hap();
+  setTimeout(function(){decide(action)},230);
 }
-function decide(like,sup){
+function decide(action){
   var p=deck.shift();draw();
-  if(like&&(p.m||sup)){pairs.push(p);$('#dot').hidden=false;renderList();hap('medium');
-    sheet('<h3>Взаимная симпатия</h3><p>Вы с '+p.n+' понравились друг другу. Можно начать с вопроса про трек недели.</p><button class="btn" data-act="open" data-n="'+p.n+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+  api('/api/swipe',{target:p.id,action:action}).then(function(r){
+    setVibes(r.vibes);
+    if(r.match){hap('medium');loadPairs();sheet('<h3>Взаимная симпатия</h3><p>Вы с '+esc(p.name)+' понравились друг другу.</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(deck.length<3)loadFeed();
+  }).catch(function(e){toast(e.message)});
 }
 
-/* pairs and chat */
+/* пары и чат */
+function loadPairs(){api('/api/matches').then(function(d){pairs=d.items;renderList()}).catch(function(){})}
 function renderList(){
   var l=$('#list');
-  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь «Нравится» в ленте. Взаимные симпатии появятся здесь.</p></div>';return}
-  l.innerHTML=pairs.map(function(p){var lg=chatLog[p.n];return '<button class="row" data-act="open" data-n="'+p.n+'"><div class="av" style="--h:'+p.h+'">'+p.n[0]+'</div><div><b>'+p.n+', '+p.a+'</b><small>'+(lg&&lg.length?lg[lg.length-1].t:'Новая пара')+'</small></div></button>'}).join('');
+  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь «Нравится» в ленте. Когда симпатия взаимная, человек появится здесь.</p></div>';return}
+  l.innerHTML=pairs.map(function(p){return '<button class="row" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+esc(p.name[0])+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(p.last||'Новая пара, напиши первым')+'</small></div></button>'}).join('');
 }
-function openChat(n){
-  var p=pairs.filter(function(x){return x.n===n})[0];if(!p)return;cur=p;closeSheet();tab('chats');
+function openChat(id,name){
+  cur={id:id,name:name};nmsg=-1;closeSheet();tab('chats');
   var c=$('#chat');c.classList.add('on');
-  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+p.h+';width:38px;height:38px">'+p.n[0]+'</div><b>'+p.n+'</b></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="300"><button class="btn" type="submit">Отправить</button></form>';
-  var m=$('#msgs');m.innerHTML='<div class="hint">Вы совпали. Спроси, какой трек у неё на репите.</div>';
-  (chatLog[n]||[]).forEach(function(x){bubble(x.t,x.me)});
-  $('#sf').onsubmit=function(e){e.preventDefault();var v=$('#mi').value.trim();if(!v)return;$('#mi').value='';send(v,true);setTimeout(function(){send(p.r,false)},900)};
+  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+esc(name[0])+'</div><b>'+esc(name)+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit">Отправить</button></form>';
+  $('#sf').onsubmit=function(e){e.preventDefault();var v=$('#mi').value.trim();if(!v)return;$('#mi').value='';api('/api/messages',{to:cur.id,text:v}).then(loadMsgs).catch(function(e){toast(e.message)})};
+  loadMsgs();clearInterval(poll);poll=setInterval(loadMsgs,4000);
 }
-function bubble(t,me){var d=document.createElement('div');d.className='m'+(me?' me':'');d.textContent=t;$('#msgs').appendChild(d);$('#msgs').scrollTop=1e5}
-function send(t,me){if(!cur||!$('#msgs'))return;(chatLog[cur.n]=chatLog[cur.n]||[]).push({t:t,me:me});bubble(t,me);renderList()}
-
-/* profile */
-function chips(id,list,multi,sel){
-  var box=$(id);box.innerHTML='';
-  list.forEach(function(t){var b=document.createElement('button');b.textContent=t;b.setAttribute('aria-pressed',sel.indexOf(t)>-1);
-    b.onclick=function(){var on=b.getAttribute('aria-pressed')==='true';
-      if(!multi)box.querySelectorAll('button').forEach(function(o){o.setAttribute('aria-pressed','false')});
-      b.setAttribute('aria-pressed',multi?String(!on):'true')};box.appendChild(b)});
+function loadMsgs(){
+  if(!cur)return;
+  api('/api/messages?with='+cur.id).then(function(d){
+    var m=$('#msgs');if(!m||d.items.length===nmsg)return;nmsg=d.items.length;
+    m.innerHTML='<div class="hint">Вы совпали. Начни с простого вопроса: какой трек у тебя сейчас на репите?</div>';
+    d.items.forEach(function(x){var b=document.createElement('div');b.className='m'+(x.me?' me':'');b.textContent=x.text;m.appendChild(b)});
+    m.scrollTop=1e6;
+  }).catch(function(){});
 }
-chips('#moods',MOODS,false,["В наушниках"]);chips('#ints',INTS,true,["Музыка","Кино","Путешествия"]);
-try{var u=window.Telegram.WebApp.initDataUnsafe.user;if(u&&u.first_name){$('#myname').textContent=u.first_name;$('#myav').textContent=u.first_name[0]}}catch(e){}
+function leaveChat(){clearInterval(poll);cur=null;$('#chat').classList.remove('on')}
 
-/* actions */
+/* жалобы и подтверждение */
+var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
+function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3><p>Аккаунт сразу пропадёт у тебя. Жалобу проверит модератор, а после нескольких жалоб анкета скрывается для всех.</p>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
+function renderVerify(){var v=$('#vrow');if(!me){v.style.display='none';return}v.style.display='flex';
+  v.innerHTML=me.verified?ic('check',20)+'<span>Анкета подтверждена</span>':me.pending?'<span>Селфи на проверке. Ответ придёт в чат с ботом.</span>':'<span style="flex:1">Подтверди анкету селфи и получи +50 вайбов</span><button class="btn" style="padding:8px 14px" data-act="verify">Подтвердить</button>'}
+
+/* действия */
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-act]');if(!t)return;var a=t.dataset.act;
-  if(a==='like')fly(true);else if(a==='nope')fly(false);else if(a==='super')fly(true,true);
+  if(a==='like')fly('like');else if(a==='nope')fly('pass');else if(a==='super')fly('super');
   else if(a==='close')closeSheet();
-  else if(a==='open')openChat(t.dataset.n);
-  else if(a==='back'){$('#chat').classList.remove('on');cur=null}
-  else if(a==='save'){hap('light');toast('Профиль сохранён')}
-  else if(a==='report'){var p=deck[0];sheet('<h3>Анкета: '+p.n+'</h3><p>Мы проверим жалобу вручную. Анкета сразу пропадёт из твоей ленты.</p><button class="btn" data-act="rep">Пожаловаться</button><button class="btn ghost" data-act="rep">Заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
-  else if(a==='rep'){closeSheet();deck.shift();draw();toast('Готово, анкета скрыта')}
+  else if(a==='reload')loadFeed();
+  else if(a==='save')save();
+  else if(a==='open')openChat(+t.dataset.id,t.dataset.n);
+  else if(a==='back'){leaveChat();loadPairs()}
+  else if(a==='vibeinfo')sheet('<h3>Что такое вайбы</h3><p>Вайбы это внутренняя валюта KIVO. Обычные лайки и пропуски бесплатны, вайбы нужны только для суперлайка.</p>'+
+    '<div class="rule"><b>+20</b><span>в подарок при создании анкеты</span></div><div class="rule"><b>+5</b><span>за первый вход в приложение каждый день</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты селфи, один раз</span></div>'+
+    '<div class="rule"><b>−5</b><span>суперлайк: человек увидит твою анкету первой и узнает, что ты его выделил</span></div><button class="btn" data-act="close">Понятно</button>');
+  else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
+  else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
+  else if(a==='rep'||a==='blk'){var id=repId;closeSheet();api('/api/report',{target:id,report:a==='rep',reason:t.dataset.r}).catch(function(){});deck=deck.filter(function(x){return x.id!==id});draw();if(cur&&cur.id===id){leaveChat();loadPairs()}toast('Готово, аккаунт скрыт')}
+  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3><p>Бот попросит прислать селфи с простым жестом. Фото увидит только модератор, в анкету оно не попадёт. После проверки появится значок и +50 вайбов (один раз).</p><button class="btn" data-act="vgo">Отправить селфи боту</button><button class="btn ghost" data-act="close">Позже</button>');
+  else if(a==='vgo'){closeSheet();var u='https://t.me/'+me.bot+'?start=verify';try{TG.openTelegramLink(u)}catch(e){window.open(u)}setTimeout(function(){try{TG.close()}catch(e){}},400)}
 });
-draw();renderList();
-try{Telegram.WebApp.ready();Telegram.WebApp.expand()}catch(e){}
+
+/* запуск */
+function start(){
+  $('nav').classList.remove('off');tab('feed');loadFeed();loadPairs();
+}
+function boot(){
+  try{TG.ready();TG.expand()}catch(e){}
+  if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3><p>Приложение работает только внутри бота.</p></div>';return}
+  fillForm({});
+  api('/api/me').then(function(d){
+    if(!d.exists){$('#fn').value=d.name||'';return}
+    me=d;setVibes(d.vibes);fillForm(d);renderVerify();$('#adultrow').style.display='none';$('#meh').textContent='Профиль';
+    if(d.bonus)toast('+'+d.bonus+' вайбов за вход');start();
+  }).catch(function(e){toast(e.message)});
+}
+boot();
 </script>
 </body>
 </html>
