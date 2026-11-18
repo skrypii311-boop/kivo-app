@@ -6,10 +6,10 @@
 <title>KIVO</title>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F2F1ED;--sf:#FFFFFF;--sf2:#E8E6E0;--tx:#1A1B20;--mu:#6B6E78;--ac:#4B5BD6;--acx:#FFFFFF;--ln:rgba(0,0,0,.09);color-scheme:light;
+:root{--bg:#F3F3F8;--sf:#FFFFFF;--sf2:#E4E6F1;--tx:#1A1B20;--mu:#656877;--ac:#5160E0;--acx:#FFFFFF;--ln:rgba(30,35,80,.11);--acs:rgba(81,96,224,.10);--grad:linear-gradient(135deg,#5B6BE8,#8A6BE0);--sh:0 2px 8px -4px rgba(30,35,80,.18);color-scheme:light;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13141A;--sf:#1C1E26;--sf2:#262932;--tx:#ECEAE4;--mu:#8D909C;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.09);color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#13141A;--sf:#1C1E26;--sf2:#262932;--tx:#ECEAE4;--mu:#8D909C;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.09);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14151D;--sf:#1F212C;--sf2:#2B2E3C;--tx:#ECEAE4;--mu:#9296A6;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.11);--acs:rgba(157,169,255,.12);--grad:linear-gradient(135deg,#4F5ED0,#7A5BC8);--sh:0 2px 8px -4px rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14151D;--sf:#1F212C;--sf2:#2B2E3C;--tx:#ECEAE4;--mu:#9296A6;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.11);--acs:rgba(157,169,255,.12);--grad:linear-gradient(135deg,#4F5ED0,#7A5BC8);--sh:0 2px 8px -4px rgba(0,0,0,.5);color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--bg);color:var(--tx);font:400 15px/1.45 Onest,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -27,7 +27,7 @@ section.on{display:flex}
 /* feed */
 .stack{flex:1;position:relative;min-height:0}
 .card{position:absolute;inset:0;border-radius:24px;overflow:hidden;touch-action:none;user-select:none;color:#fff;
-background:linear-gradient(165deg,hsl(var(--h) 24% 38%),hsl(var(--h) 26% 17%));border:1px solid var(--ln)}
+background:linear-gradient(165deg,hsl(var(--h) 30% 40%),hsl(var(--h) 32% 19%));border:1px solid var(--ln)}
 .card.back{transform:scale(.95) translateY(10px);opacity:.7;pointer-events:none}
 .card .ini{position:absolute;top:14%;left:0;right:0;text-align:center;font-size:150px;font-weight:800;opacity:.16}
 .card .ov{position:absolute;inset:auto 0 0 0;padding:70px 18px 18px;background:linear-gradient(transparent,rgba(8,8,12,.82))}
@@ -54,7 +54,7 @@ background:linear-gradient(165deg,hsl(var(--h) 24% 38%),hsl(var(--h) 26% 17%));b
 h1{font-size:24px;font-weight:700;margin:6px 2px 12px}
 .row{display:flex;gap:12px;align-items:center;width:100%;padding:10px;border-radius:16px;text-align:left}
 .row:hover{background:var(--sf)}
-.av{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:hsl(var(--h) 24% 34%)}
+.av{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:hsl(var(--h) 30% 40%)}
 .row small{display:block;color:var(--mu);font-size:13px}
 /* chat */
 #chat{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:5}
@@ -151,31 +151,51 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 10px}
 .day{text-align:center;padding:8px 2px;border-radius:12px;background:var(--sf);border:1px solid var(--ln);font-size:12px;color:var(--mu)}
 .day b{display:block;font-size:14px;color:var(--tx);margin-top:2px}
-.day.done{background:linear-gradient(160deg,#ff8a3d,#ff3d81);color:#fff;border-color:transparent}.day.done b{color:#fff}
-.day.today{border:2px solid #ff3d81;box-shadow:0 0 0 3px rgba(255,61,129,.18)}
+.day.done{background:var(--grad);color:#fff;border-color:transparent}.day.done b{color:#fff}
+.day.today{border:2px solid var(--ac);box-shadow:0 0 0 3px var(--acs)}
 .linkbox{padding:12px 14px;border-radius:14px;background:var(--sf);border:1px solid var(--ln);font-size:13px;overflow-wrap:anywhere;margin-bottom:6px;user-select:all}
 /* выбор страны и города */
 select{font:inherit;color:var(--tx);border:1px solid var(--ln);border-radius:14px;padding:11px 36px 11px 14px;width:100%;-webkit-appearance:none;appearance:none;
 background:var(--sf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238D909C' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center/12px}
 select:disabled{opacity:.5}
 .lochint{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--sf);border:1px solid var(--ln);font-size:13px;color:var(--mu)}
-.lochint.warn{border-color:var(--ac);background:linear-gradient(135deg,rgba(255,138,61,.12),rgba(139,92,246,.14));color:var(--tx)}
+.lochint.warn{border-color:var(--ac);background:var(--acs);color:var(--tx)}
 /* профиль: просмотр */
 .ph{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .edb{display:inline-flex;gap:6px;align-items:center;padding:8px 14px;border-radius:99px;background:var(--sf);border:1px solid var(--ln);font-size:14px;font-weight:500}
 .edb svg{width:17px;height:17px;color:var(--ac)}
 .card.pcv{position:relative;inset:auto;height:min(500px,62vh);min-height:340px;touch-action:auto}
 /* серия */
-.hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:18px;border-radius:22px;color:#fff;background:linear-gradient(135deg,#ff8a3d 0%,#ff3d81 55%,#8b5cf6 100%);box-shadow:0 10px 28px -12px rgba(255,61,129,.7)}
-.hero:after{content:"";position:absolute;right:-34px;top:-34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.14)}
+.hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:18px;border-radius:22px;color:#fff;background:var(--grad);box-shadow:0 8px 20px -12px rgba(81,96,224,.55)}
+.hero:after{content:"";position:absolute;right:-34px;top:-34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.12)}
 .hero .hfire{font-size:48px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
 .hero b{font-size:38px;line-height:1}
 .gift{display:inline-block;margin-top:8px;padding:5px 11px;border-radius:99px;background:rgba(255,255,255,.22);font-size:13px;font-weight:500}
 .pbar{height:12px;border-radius:99px;background:var(--sf2);overflow:hidden}
-.pbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff8a3d,#ff3d81);transition:width .4s}
+.pbar i{display:block;height:100%;border-radius:99px;background:var(--grad);transition:width .4s}
 .day i{display:block;font-style:normal;font-size:15px;line-height:1.5}
-.hw{padding:14px 14px 4px;border-radius:18px;background:linear-gradient(160deg,rgba(255,138,61,.12),rgba(139,92,246,.13));border:1px solid var(--ln)}
+.hw{padding:14px 14px 4px;border-radius:18px;background:var(--acs);border:1px solid var(--ln)}
 .hw .rule b{min-width:78px}
+
+/* единый стиль вкладок */
+.vibes,.rb,.ok,.sw,.big,.stats div,.day,.linkbox,.lochint,.edb,.row{box-shadow:var(--sh)}
+.row{background:var(--sf);border:1px solid var(--ln);margin-bottom:8px}
+.row:hover{background:var(--sf)}
+.vibes{background:var(--acs);border-color:transparent}
+.btn{background:var(--grad);color:#fff}
+.rb.main{background:var(--grad);color:#fff}
+.badge{background:var(--grad);color:#fff}
+.m.me{background:var(--grad);color:#fff}
+.tg button[aria-pressed="true"]{background:var(--grad);color:#fff}
+.stats b,.big b{color:var(--ac)}
+.lbl{font-weight:500}
+h1{display:flex;align-items:center;gap:8px}
+nav{background:var(--sf)}
+nav button[aria-current="page"]{color:var(--ac);font-weight:700}
+.prog{font-size:11.5px;line-height:1.3;padding:0 0 4px}
+.acts{padding-top:8px}
+.rb{width:56px;height:56px}.rb.sm{width:46px;height:46px}
+.cap{font-size:11.5px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -184,7 +204,7 @@ select:disabled{opacity:.5}
   <header><span class="logo">KIVO</span><button class="vibes" data-act="vibeinfo" aria-label="Что такое вайбы"><span id="ico-bolt"></span><b id="vn">–</b><span>вайбы</span></button></header>
   <main>
     <section id="feed">
-      <div class="prog" id="prog"></div><div class="prog" style="padding-top:0">Свайп вниз: пропустить · вверх: вернуть прошлую · двойной тап: лайк</div>
+      <div class="prog" id="prog"></div><div class="prog" style="padding-top:0">Свайп вверх: пропустить · вниз: вернуть прошлую · двойной тап: лайк</div>
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
@@ -357,18 +377,18 @@ function draw(){
   if(!deck.length){s.innerHTML='<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже: новые люди появляются каждый день.</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
   $('.acts').style.display='';
   deck.slice(0,2).reverse().forEach(function(p,i,a){
-    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.id%360);if(p.photo)c.style.background='url("'+p.photo+'") center/cover';c.innerHTML=cardHTML(p);s.appendChild(c);
+    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.id%360);if(p.photo)c.style.background='url("'+p.photo+'") center 25%/cover';c.innerHTML=cardHTML(p);s.appendChild(c);
     if(i===a.length-1)drag(c);
   });
 }
 function drag(c){
   var y0=0,dy=0,on=false,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n');
   c.onpointerdown=function(e){if(e.target.closest('.more')||lock)return;on=true;y0=e.clientY;c.setPointerCapture(e.pointerId);c.style.transition='none'};
-  c.onpointermove=function(e){if(!on)return;dy=e.clientY-y0;c.style.transform='translateY('+(dy>0?dy:dy/3)+'px)';N.style.opacity=Math.max(0,Math.min(1,dy/90));L.style.opacity=Math.max(0,Math.min(1,-dy/70))};
+  c.onpointermove=function(e){if(!on)return;dy=e.clientY-y0;c.style.transform='translateY('+(dy<0?dy:dy/3)+'px)';N.style.opacity=Math.max(0,Math.min(1,-dy/90));L.style.opacity=Math.max(0,Math.min(1,dy/70))};
   c.onpointerup=c.onpointercancel=function(e){if(!on)return;on=false;var up=e.type==='pointerup';
-    if(up&&dy>100){dy=0;skip();return}
+    if(up&&dy<-100){dy=0;skip();return}
     c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0;
-    if(up&&dy<-70)askRewind();
+    if(up&&dy>70)askRewind();
     else if(up&&Math.abs(dy)<8){var t=Date.now();if(t-lastTap<320){lastTap=0;var r=c.getBoundingClientRect();dbl(c,e.clientX-r.left,e.clientY-r.top)}else lastTap=t}
     dy=0};
 }
@@ -382,13 +402,13 @@ function fly(action){
   if(action==='super'&&me.vibes<5){deny('Не хватает вайбов: суперлайк стоит 5');return}
   if(action!=='pass'&&I.likes_left<=0){deny('Лайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
   if(action==='pass'&&I.passes_left<=0){deny('Дизлайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
-  c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(620px)':'scale(1.06)';c.style.opacity=0;hap();
+  c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(-620px)':'scale(1.06)';c.style.opacity=0;hap();
   setTimeout(function(){decide(action)},230);
 }
 function skip(){
   var c=$('#stack .card:last-child');if(!c||lock)return;
   if(deck.length<2){draw();toast('Других анкет пока нет');loadFeed();return}
-  lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateY(620px)';c.style.opacity=0;hap();
+  lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateY(-620px)';c.style.opacity=0;hap();
   setTimeout(function(){lock=false;prev=deck[0];deck.push(deck.shift());draw();if(deck.length<3)loadFeed()},230);
 }
 function dbl(c,x,y){
@@ -491,17 +511,17 @@ function renderStreak(){
   var i=me.info||{},s=i.streak||0,need=i.need||15,done=i.done||0,pct=Math.min(100,Math.round(done/need*100)),cells='',today=i.claimed?0:Math.min(s+1,7),left=i.likes_left;
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
-  $('#streak').innerHTML='<h1>🔥 Серия</h1>'+
+  $('#streak').innerHTML='<h1>Серия</h1>'+
     '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span></div>'+
     '<div class="gift">'+(i.claimed?'✅ Награда за сегодня получена':'🎁 Награда за сегодня: +'+(i.reward||5)+' вайбов')+'</div></div></div>'+
-    '<div class="lbl">❤️ Прогресс за сегодня</div><div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
+    '<div class="lbl">Прогресс за сегодня</div><div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
     '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'❤️ '+done+' из '+need+' '+plural(need,'лайка','лайков','лайков'))+'</div>'+
-    '<div class="lbl">🎁 Награды по дням</div><div class="days">'+cells+'</div><p class="sub">🏆 С 8-го дня +40 вайбов за каждый день.</p>'+
-    '<div class="lbl">✨ Как это работает</div>'+
-    '<div class="hw"><div class="rule"><b>❤️ '+need+'</b><span>лайков за день засчитывают заход. Пропуск свайпом вниз и дизлайки не считаются</span></div>'+
+    '<div class="lbl">Награды по дням</div><div class="days">'+cells+'</div><p class="sub">С 8-го дня +40 вайбов за каждый день.</p>'+
+    '<div class="lbl">Как это работает</div>'+
+    '<div class="hw"><div class="rule"><b>'+need+' ❤️</b><span>лайков за день засчитывают заход. Пропуск свайпом вверх и дизлайки не считаются</span></div>'+
     '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
     '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>'+
-    '<p class="sub" style="margin-top:12px">💖 Осталось сегодня: '+(left==null?'–':left+' '+plural(left,'лайк','лайка','лайков'))+'</p>';
+    '<p class="sub" style="margin-top:12px">Осталось сегодня: '+(left==null?'–':left+' '+plural(left,'лайк','лайка','лайков'))+'</p>';
 }
 
 /* действия */
