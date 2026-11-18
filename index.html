@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KIVO</title>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F1ED;--sf:#FFFFFF;--sf2:#E8E6E0;--tx:#1A1B20;--mu:#6B6E78;--ac:#4B5BD6;--acx:#FFFFFF;--ln:rgba(0,0,0,.09);color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13141A;--sf:#1C1E26;--sf2:#262932;--tx:#ECEAE4;--mu:#8D909C;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.09);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#13141A;--sf:#1C1E26;--sf2:#262932;--tx:#ECEAE4;--mu:#8D909C;--ac:#9DA9FF;--acx:#14151C;--ln:rgba(255,255,255,.09);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:400 15px/1.45 Onest,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
+#app{position:relative;height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 8px}
+.logo{font-weight:800;font-size:20px;letter-spacing:.14em}
+.vibes{display:flex;gap:6px;align-items:center;padding:6px 12px;border-radius:99px;background:var(--sf);border:1px solid var(--ln);font-weight:500;font-size:14px}
+.vibes svg{width:15px;height:15px;color:var(--ac)}
+main{flex:1;min-height:0;position:relative}
+section{position:absolute;inset:0;display:none;flex-direction:column;padding:6px 16px 12px;overflow-y:auto}
+section.on{display:flex}
+/* feed */
+.stack{flex:1;position:relative;min-height:0}
+.card{position:absolute;inset:0;border-radius:24px;overflow:hidden;touch-action:none;user-select:none;color:#fff;
+background:linear-gradient(165deg,hsl(var(--h) 24% 38%),hsl(var(--h) 26% 17%));border:1px solid var(--ln)}
+.card.back{transform:scale(.95) translateY(10px);opacity:.7;pointer-events:none}
+.card .ini{position:absolute;top:14%;left:0;right:0;text-align:center;font-size:150px;font-weight:800;opacity:.16}
+.card .ov{position:absolute;inset:auto 0 0 0;padding:70px 18px 18px;background:linear-gradient(transparent,rgba(8,8,12,.82))}
+.card h2{font-size:27px;font-weight:700;line-height:1.1}
+.card h2 span{font-weight:400;opacity:.8}
+.meta{font-size:13px;opacity:.75;margin:4px 0 8px}
+.bio{font-size:14px;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:4px 11px;border-radius:99px;border:1px solid rgba(255,255,255,.35);font-size:12.5px}
+.q{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.12);font-size:13px}
+.q b{display:block;font-weight:500;opacity:.7;font-size:12px;margin-bottom:2px}
+.stamp{position:absolute;top:22px;padding:4px 12px;border:2px solid #fff;border-radius:10px;font-weight:700;font-size:16px;opacity:0;color:#fff}
+.stamp.l{left:18px;transform:rotate(-8deg)}.stamp.n{right:18px;transform:rotate(8deg)}
+.more{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.28);color:#fff}
+.more svg{width:18px;height:18px;fill:currentColor;stroke:none}
+.acts{display:flex;justify-content:center;align-items:center;gap:18px;padding-top:14px}
+.rb{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:var(--sf);border:1px solid var(--ln)}
+.rb svg{width:26px;height:26px}
+.rb.main{background:var(--ac);color:var(--acx);border-color:transparent}
+.rb.sm{width:48px;height:48px}.rb.sm svg{width:21px;height:21px}
+.empty{margin:auto;text-align:center;max-width:260px;color:var(--mu)}
+.empty h3{color:var(--tx);font-size:18px;margin-bottom:6px}
+/* lists */
+h1{font-size:24px;font-weight:700;margin:6px 2px 12px}
+.row{display:flex;gap:12px;align-items:center;width:100%;padding:10px;border-radius:16px;text-align:left}
+.row:hover{background:var(--sf)}
+.av{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:hsl(var(--h) 24% 34%)}
+.row small{display:block;color:var(--mu);font-size:13px}
+/* chat */
+#chat{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:5}
+#chat.on{display:flex}
+.chh{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--ln)}
+.chh svg{width:22px;height:22px}
+#msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:78%;padding:9px 13px;border-radius:18px;background:var(--sf);border:1px solid var(--ln);align-self:flex-start;overflow-wrap:anywhere}
+.m.me{align-self:flex-end;background:var(--ac);color:var(--acx);border-color:transparent}
+.hint{align-self:center;text-align:center;color:var(--mu);font-size:13px;padding:6px 14px}
+.send{display:flex;gap:8px;padding:10px 14px}
+input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:11px 14px;width:100%}
+.btn{padding:12px 20px;border-radius:14px;background:var(--ac);color:var(--acx);font-weight:700}
+.btn.ghost{background:var(--sf);color:var(--tx);border:1px solid var(--ln);font-weight:500}
+/* profile */
+.me-h{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.me-h .av{width:64px;height:64px;font-size:26px}
+.lbl{font-size:13px;color:var(--mu);margin:16px 2px 8px}
+.tg{display:flex;flex-wrap:wrap;gap:8px}
+.tg button{padding:7px 14px;border-radius:99px;border:1px solid var(--ln);background:var(--sf);font-size:14px}
+.tg button[aria-pressed="true"]{background:var(--ac);color:var(--acx);border-color:transparent}
+.ok{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--sf);border:1px solid var(--ln);margin-top:16px}
+.ok svg{width:20px;height:20px;color:var(--ac)}
+/* nav */
+nav{display:flex;border-top:1px solid var(--ln);background:var(--bg)}
+nav button{flex:1;padding:10px 0 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--mu)}
+nav button svg{width:23px;height:23px}
+nav button[aria-current="page"]{color:var(--tx);font-weight:500}
+nav button[aria-current="page"] svg{color:var(--ac)}
+.dot{position:absolute;margin:-2px 0 0 14px;width:8px;height:8px;border-radius:50%;background:var(--ac)}
+/* overlays */
+#shade{position:absolute;inset:0;background:rgba(0,0,0,.5);display:none;z-index:8}
+#shade.on{display:block}
+#sheet{position:absolute;left:0;right:0;bottom:0;background:var(--sf);border-radius:24px 24px 0 0;padding:24px 20px 22px;transform:translateY(105%);transition:transform .25s ease;z-index:9}
+#sheet.on{transform:none}
+#sheet h3{font-size:21px;margin-bottom:6px}
+#sheet p{color:var(--mu);margin-bottom:16px}
+#sheet .btn{display:block;width:100%;margin-top:8px;text-align:center}
+#gate{position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;justify-content:center;padding:28px}
+#gate .logo{font-size:34px;margin-bottom:22px}
+#gate h1{margin:0 0 8px}
+#gate p{color:var(--mu);margin-bottom:22px}
+.chk{display:flex;gap:12px;align-items:center;margin-bottom:18px;font-weight:500}
+.chk input{width:22px;height:22px;accent-color:var(--ac);padding:0}
+.btn:disabled{opacity:.4;cursor:default}
+#toast{position:absolute;left:50%;bottom:76px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><span class="logo">KIVO</span><span class="vibes" title="Вайбы"><span id="ico-bolt"></span><b id="vn">20</b></span></header>
+  <main>
+    <section id="feed" class="on">
+      <div class="stack" id="stack"></div>
+      <div class="acts">
+        <button class="rb" data-act="nope" aria-label="Пропустить"><span data-i="x"></span></button>
+        <button class="rb sm" data-act="super" aria-label="Суперлайк за 5 вайбов"><span data-i="bolt"></span></button>
+        <button class="rb main" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button>
+      </div>
+    </section>
+    <section id="chats"><h1>Пары</h1><div id="list"></div></section>
+    <section id="me">
+      <div class="me-h"><div class="av" id="myav" style="--h:230">М</div><div><h1 style="margin:0" id="myname">Макс</h1><small style="color:var(--mu)">Профиль виден только в ленте</small></div></div>
+      <div class="lbl">О себе</div>
+      <textarea id="mybio" rows="3" maxlength="140">Люблю длинные прогулки и плохое кино.</textarea>
+      <div class="lbl">Настроение</div>
+      <div class="tg" id="moods"></div>
+      <div class="lbl">Интересы</div>
+      <div class="tg" id="ints"></div>
+      <div class="ok"><span data-i="check"></span><span>Возраст 18+ подтверждён</span></div>
+      <button class="btn" style="margin-top:16px" data-act="save">Сохранить</button>
+    </section>
+    <div id="chat"></div>
+  </main>
+  <nav>
+    <button data-tab="feed" aria-current="page"><span data-i="cards"></span>Лента</button>
+    <button data-tab="chats"><span data-i="chat"></span>Пары<i class="dot" id="dot" hidden></i></button>
+    <button data-tab="me"><span data-i="user"></span>Профиль</button>
+  </nav>
+  <div id="shade"></div><div id="sheet" role="dialog" aria-modal="true"></div>
+  <div id="toast"></div>
+  <div id="gate">
+    <div class="logo">KIVO</div>
+    <h1>Только для 18+</h1>
+    <p>KIVO — знакомства для тех, кому исполнилось 18. Подтверди возраст, чтобы продолжить. Анкеты проверяются, на любую можно пожаловаться.</p>
+    <label class="chk"><input type="checkbox" id="age"> Мне есть 18 лет</label>
+    <button class="btn" id="go" disabled>Продолжить</button>
+  </div>
+</div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+var IC={x:'<path d="M6 6l12 12M18 6L6 18"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z"/>',chat:'<path d="M5 5h14v10H10l-5 4V5z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>',cards:'<rect x="5" y="4" width="14" height="16" rx="3"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>'};
+function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
+document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.dataset.i)});
+document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
+
+var P=[
+{n:"Алина",a:23,c:"Москва",b:"Бегаю по утрам, вечером хочу пасту и разговоры ни о чём.",i:["Бег","Кино","Кофе"],q:"Бейрут Gorillaz на репите.",h:18,m:1,r:"Привет! Ты тоже за кофе без сахара?"},
+{n:"Тимур",a:26,c:"Казань",b:"Фотографирую город, когда он ещё спит.",i:["Фото","Горы","Винил"],q:"Сборник Boards of Canada.",h:200,m:0,r:"Привет!"},
+{n:"Соня",a:21,c:"Санкт-Петербург",b:"Учусь на дизайнера, коллекционирую странные открытки.",i:["Арт","Книги","Выставки"],q:"Новый альбом Монеточки.",h:330,m:1,r:"Привет! Какую открытку тебе прислать?"},
+{n:"Даниил",a:24,c:"Москва",b:"Играю в настолки и плохо готовлю. Учусь лучше.",i:["Настолки","Кухня","Спорт"],q:"Что-то из 90-х, не скажу что.",h:140,m:0,r:"Привет!"},
+{n:"Мира",a:22,c:"Екатеринбург",b:"Езжу на велике, спорю про фильмы Линча.",i:["Велик","Кино","Музыка"],q:"Тишина между треками.",h:260,m:0,r:"Привет!"}
+];
+var deck=P.slice(),pairs=[],vibes=20,cur=null,chatLog={};
+var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"],INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня"];
+var $=function(s){return document.querySelector(s)};
+function hap(t){try{window.Telegram.WebApp.HapticFeedback.impactOccurred(t||"light")}catch(e){}}
+function toast(t){var e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('on')},1800)}
+function sheet(h){$('#sheet').innerHTML=h;$('#shade').classList.add('on');$('#sheet').classList.add('on')}
+function closeSheet(){$('#shade').classList.remove('on');$('#sheet').classList.remove('on')}
+$('#shade').onclick=closeSheet;
+
+/* age gate */
+try{if(localStorage.getItem('kivo18')==='1')$('#gate').style.display='none'}catch(e){}
+$('#age').onchange=function(){$('#go').disabled=!this.checked};
+$('#go').onclick=function(){$('#gate').style.display='none';try{localStorage.setItem('kivo18','1')}catch(e){}};
+
+/* tabs */
+function tab(t){
+  ['feed','chats','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
+  document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(t==='chats')$('#dot').hidden=true;
+}
+document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){tab(b.dataset.tab)}});
+
+/* feed */
+function cardHTML(p){
+  return '<div class="ini">'+p.n[0]+'</div><span class="stamp l">Нравится</span><span class="stamp n">Дальше</span>'+
+  '<button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>'+
+  '<div class="ov"><h2>'+p.n+' <span>'+p.a+'</span></h2><div class="meta">'+p.c+'</div><div class="bio">'+p.b+'</div>'+
+  '<div class="chips">'+p.i.map(function(x){return '<span class="chip">'+x+'</span>'}).join('')+'</div>'+
+  '<div class="q"><b>Лучший трек этой недели</b>'+p.q+'</div></div>';
+}
+function draw(){
+  var s=$('#stack');s.innerHTML='';
+  if(!deck.length){s.innerHTML='<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже или добавь интересов в профиле — лента обновится.</p></div>';$('.acts').style.display='none';return}
+  $('.acts').style.display='';
+  deck.slice(0,2).reverse().forEach(function(p,i,a){
+    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.h);c.innerHTML=cardHTML(p);s.appendChild(c);
+    if(i===a.length-1)drag(c);
+  });
+}
+function drag(c){
+  var x0=0,dx=0,on=false,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n');
+  c.onpointerdown=function(e){if(e.target.closest('.more'))return;on=true;x0=e.clientX;c.setPointerCapture(e.pointerId);c.style.transition='none'};
+  c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;c.style.transform='translateX('+dx+'px) rotate('+dx/20+'deg)';L.style.opacity=Math.max(0,Math.min(1,dx/90));N.style.opacity=Math.max(0,Math.min(1,-dx/90))};
+  c.onpointerup=c.onpointercancel=function(){if(!on)return;on=false;if(Math.abs(dx)>100)fly(dx>0);else{c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0}dx=0};
+}
+function fly(like,sup){
+  var c=$('#stack .card:last-child');if(!c||!deck.length)return;
+  if(sup){if(vibes<5){toast('Не хватает вайбов');return}vibes-=5;$('#vn').textContent=vibes}
+  c.style.transition='transform .25s,opacity .25s';c.style.transform='translateX('+(like?520:-520)+'px) rotate('+(like?16:-16)+'deg)';c.style.opacity=0;
+  hap();setTimeout(function(){decide(like,sup)},230);
+}
+function decide(like,sup){
+  var p=deck.shift();draw();
+  if(like&&(p.m||sup)){pairs.push(p);$('#dot').hidden=false;renderList();hap('medium');
+    sheet('<h3>Взаимная симпатия</h3><p>Вы с '+p.n+' понравились друг другу. Можно начать с вопроса про трек недели.</p><button class="btn" data-act="open" data-n="'+p.n+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+}
+
+/* pairs and chat */
+function renderList(){
+  var l=$('#list');
+  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь «Нравится» в ленте. Взаимные симпатии появятся здесь.</p></div>';return}
+  l.innerHTML=pairs.map(function(p){var lg=chatLog[p.n];return '<button class="row" data-act="open" data-n="'+p.n+'"><div class="av" style="--h:'+p.h+'">'+p.n[0]+'</div><div><b>'+p.n+', '+p.a+'</b><small>'+(lg&&lg.length?lg[lg.length-1].t:'Новая пара')+'</small></div></button>'}).join('');
+}
+function openChat(n){
+  var p=pairs.filter(function(x){return x.n===n})[0];if(!p)return;cur=p;closeSheet();tab('chats');
+  var c=$('#chat');c.classList.add('on');
+  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+p.h+';width:38px;height:38px">'+p.n[0]+'</div><b>'+p.n+'</b></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="300"><button class="btn" type="submit">Отправить</button></form>';
+  var m=$('#msgs');m.innerHTML='<div class="hint">Вы совпали. Спроси, какой трек у неё на репите.</div>';
+  (chatLog[n]||[]).forEach(function(x){bubble(x.t,x.me)});
+  $('#sf').onsubmit=function(e){e.preventDefault();var v=$('#mi').value.trim();if(!v)return;$('#mi').value='';send(v,true);setTimeout(function(){send(p.r,false)},900)};
+}
+function bubble(t,me){var d=document.createElement('div');d.className='m'+(me?' me':'');d.textContent=t;$('#msgs').appendChild(d);$('#msgs').scrollTop=1e5}
+function send(t,me){if(!cur||!$('#msgs'))return;(chatLog[cur.n]=chatLog[cur.n]||[]).push({t:t,me:me});bubble(t,me);renderList()}
+
+/* profile */
+function chips(id,list,multi,sel){
+  var box=$(id);box.innerHTML='';
+  list.forEach(function(t){var b=document.createElement('button');b.textContent=t;b.setAttribute('aria-pressed',sel.indexOf(t)>-1);
+    b.onclick=function(){var on=b.getAttribute('aria-pressed')==='true';
+      if(!multi)box.querySelectorAll('button').forEach(function(o){o.setAttribute('aria-pressed','false')});
+      b.setAttribute('aria-pressed',multi?String(!on):'true')};box.appendChild(b)});
+}
+chips('#moods',MOODS,false,["В наушниках"]);chips('#ints',INTS,true,["Музыка","Кино","Путешествия"]);
+try{var u=window.Telegram.WebApp.initDataUnsafe.user;if(u&&u.first_name){$('#myname').textContent=u.first_name;$('#myav').textContent=u.first_name[0]}}catch(e){}
+
+/* actions */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]');if(!t)return;var a=t.dataset.act;
+  if(a==='like')fly(true);else if(a==='nope')fly(false);else if(a==='super')fly(true,true);
+  else if(a==='close')closeSheet();
+  else if(a==='open')openChat(t.dataset.n);
+  else if(a==='back'){$('#chat').classList.remove('on');cur=null}
+  else if(a==='save'){hap('light');toast('Профиль сохранён')}
+  else if(a==='report'){var p=deck[0];sheet('<h3>Анкета: '+p.n+'</h3><p>Мы проверим жалобу вручную. Анкета сразу пропадёт из твоей ленты.</p><button class="btn" data-act="rep">Пожаловаться</button><button class="btn ghost" data-act="rep">Заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
+  else if(a==='rep'){closeSheet();deck.shift();draw();toast('Готово, анкета скрыта')}
+});
+draw();renderList();
+try{Telegram.WebApp.ready();Telegram.WebApp.expand()}catch(e){}
+</script>
+</body>
+</html>
