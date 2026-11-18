@@ -40,7 +40,7 @@ background:linear-gradient(165deg,hsl(var(--h) 24% 38%),hsl(var(--h) 26% 17%));b
 .q{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.12);font-size:13px}
 .q b{display:block;font-weight:500;opacity:.7;font-size:12px;margin-bottom:2px}
 .stamp{position:absolute;top:22px;padding:4px 12px;border:2px solid #fff;border-radius:10px;font-weight:700;font-size:16px;opacity:0;color:#fff}
-.stamp.l{left:18px;transform:rotate(-8deg)}.stamp.n{right:18px;transform:rotate(8deg)}
+.stamp.l,.stamp.n{left:50%;transform:translateX(-50%);white-space:nowrap}
 .more{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.28);color:#fff}
 .more svg{width:18px;height:18px;fill:currentColor;stroke:none}
 .acts{display:flex;justify-content:center;align-items:center;gap:18px;padding-top:14px}
@@ -128,7 +128,6 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
 .ptile{width:112px;height:112px;border-radius:24px;background:var(--sf) center/cover;border:1px dashed var(--mu);display:grid;place-items:center;color:var(--mu);font-size:13px;text-align:center;margin:6px auto 0;cursor:pointer}
 .prog{font-size:12px;color:var(--mu);text-align:center;padding:0 0 6px}
 .stats{display:flex;gap:8px;margin-top:14px}.stats div{flex:1;text-align:center;padding:10px 4px;border-radius:14px;background:var(--sf);border:1px solid var(--ln)}.stats b{display:block;font-size:20px}.stats span{font-size:12px;color:var(--mu)}
-.rw{align-self:flex-end;font-size:13px;padding:5px 12px;border-radius:99px;border:1px solid var(--ln);background:var(--sf);margin-bottom:8px}
 .sw{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;padding:12px 14px;border-radius:14px;background:var(--sf);border:1px solid var(--ln)}
 .sw input{width:22px;height:22px;padding:0;accent-color:var(--ac)}
 .rng{position:relative;height:30px;margin:6px 8px 0}
@@ -143,6 +142,18 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-12deg)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(-8deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-8deg)}100%{opacity:0;transform:translate(-50%,-72%) scale(1.25) rotate(-8deg)}}
 .burst svg{filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
 #sheet .stats{margin:12px 0}#sheet .stats div{background:var(--bg)}
+#streak>*,#friends>*{flex-shrink:0}
+#friends .btn{display:block;width:100%;margin-top:8px;text-align:center}
+.sub{color:var(--mu);font-size:14px;margin:0 2px 12px}
+.big{display:flex;align-items:center;gap:14px;padding:16px;border-radius:20px;background:var(--sf);border:1px solid var(--ln)}
+.big svg{width:44px;height:44px;color:var(--ac)}.big b{font-size:32px;line-height:1}
+.bar{height:8px;border-radius:4px;background:var(--sf2);overflow:hidden;margin:0 0 8px}.bar i{display:block;height:100%;background:var(--ac);border-radius:4px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 10px}
+.day{text-align:center;padding:8px 2px;border-radius:12px;background:var(--sf);border:1px solid var(--ln);font-size:12px;color:var(--mu)}
+.day b{display:block;font-size:14px;color:var(--tx);margin-top:2px}
+.day.done{background:var(--ac);color:var(--acx);border-color:transparent}.day.done b{color:var(--acx)}
+.day.today{border:2px solid var(--ac)}
+.linkbox{padding:12px 14px;border-radius:14px;background:var(--sf);border:1px solid var(--ln);font-size:13px;overflow-wrap:anywhere;margin-bottom:6px;user-select:all}
 </style>
 </head>
 <body>
@@ -151,7 +162,7 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
   <header><span class="logo">KIVO</span><button class="vibes" data-act="vibeinfo" aria-label="Что такое вайбы"><span id="ico-bolt"></span><b id="vn">–</b><span>вайбы</span></button></header>
   <main>
     <section id="feed">
-      <div class="prog" id="prog"></div><div class="prog" style="padding-top:0">Свайп: пропустить · двойной тап: лайк</div><button class="rw" data-act="rewind">↩ Вернуть анкету · 25</button>
+      <div class="prog" id="prog"></div><div class="prog" style="padding-top:0">Свайп вниз: пропустить · вверх: вернуть прошлую · двойной тап: лайк</div>
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
@@ -160,6 +171,8 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
       </div>
     </section>
     <section id="chats"><h1>Пары</h1><div id="list"></div></section>
+    <section id="streak"></section>
+    <section id="friends"></section>
     <section id="me" class="on">
       <h1 id="meh">Создай анкету</h1>
       <div class="ptile" id="ptile" data-act="pickphoto" role="button" tabindex="0" aria-label="Добавить фото">Добавь фото</div><input type="file" id="pf" accept="image/*" hidden>
@@ -183,6 +196,8 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
   <nav class="off">
     <button data-tab="feed"><span data-i="cards"></span>Лента</button>
     <button data-tab="chats"><span data-i="chat"></span>Пары</button>
+    <button data-tab="streak"><span data-i="flame"></span>Серия</button>
+    <button data-tab="friends"><span data-i="users"></span>Друзья</button>
     <button data-tab="me" aria-current="page"><span data-i="user"></span>Профиль</button>
   </nav>
   <div id="shade"></div><div id="sheet" role="dialog" aria-modal="true"></div>
@@ -192,12 +207,13 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
 <script>
 var TG=window.Telegram&&window.Telegram.WebApp;
 var IC={x:'<path d="M6 6l12 12M18 6L6 18"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z"/>',chat:'<path d="M5 5h14v10H10l-5 4V5z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>',cards:'<rect x="5" y="4" width="14" height="16" rx="3"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>'};
+IC.flame='<path d="M12 3c.6 3.6 5 5.6 5 10.2a5 5 0 0 1-10 0c0-2.2 1-3.4 2.2-4.6.2 1.4.9 2.2 1.9 2.4C11 8.6 10.6 5.6 12 3z"/>';IC.users='<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.5 3.2-5.5 6.5-5.5s5.8 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.2 2.4 3.7 5"/>';
 function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
 document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.dataset.i)});
 document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
 var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"];
 var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
-var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false;
+var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,prev=null;
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function vf(p){return p.verified?'<span class="vf" title="Анкета подтверждена">'+ic('check',16)+'</span>':''}
@@ -211,11 +227,15 @@ function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Ty
 function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
 
 /* вкладки */
+function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);if(cb)cb()}).catch(function(){})}
 function tab(t){
-  ['feed','chats','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
+  ['feed','chats','streak','friends','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(t==='chats')loadPairs();
-  if(t==='me'&&me)api('/api/me').then(function(d){me.stats=d.stats;renderStats()}).catch(function(){});
+  if(!me)return;
+  if(t==='me')refreshMe(renderStats);
+  if(t==='streak'){renderStreak();refreshMe(renderStreak)}
+  if(t==='friends'){renderFriends();refreshMe(renderFriends)}
 }
 document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){leaveChat();tab(b.dataset.tab)}});
 
@@ -249,7 +269,7 @@ function save(){
 
 /* лента */
 function cardHTML(p){
-  return (p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+'<span class="stamp l">Дальше</span><span class="stamp n">Дальше</span>'+
+  return (p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+'<span class="stamp l">Назад · 25</span><span class="stamp n">Дальше</span>'+
   '<button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>'+
   '<div class="ov">'+(p.super?'<span class="badge">Поставил(а) тебе суперлайк</span>':'')+'<h2>'+esc(p.name)+' <span>'+p.age+'</span>'+vf(p)+'</h2>'+
   '<div class="meta">'+esc(p.city)+(p.mood?', '+esc(p.mood):'')+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
@@ -266,10 +286,19 @@ function draw(){
   });
 }
 function drag(c){
-  var x0=0,dx=0,on=false,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n');
-  c.onpointerdown=function(e){if(e.target.closest('.more')||lock)return;on=true;x0=e.clientX;c.setPointerCapture(e.pointerId);c.style.transition='none'};
-  c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;c.style.transform='translateX('+dx+'px) rotate('+dx/20+'deg)';L.style.opacity=Math.max(0,Math.min(1,dx/90));N.style.opacity=Math.max(0,Math.min(1,-dx/90))};
-  c.onpointerup=c.onpointercancel=function(e){if(!on)return;on=false;if(Math.abs(dx)>100)skip(dx>0);else{c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0;if(Math.abs(dx)<8&&e.type==='pointerup'){var t=Date.now();if(t-lastTap<320){lastTap=0;var r=c.getBoundingClientRect();dbl(c,e.clientX-r.left,e.clientY-r.top)}else lastTap=t}}dx=0};
+  var y0=0,dy=0,on=false,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n');
+  c.onpointerdown=function(e){if(e.target.closest('.more')||lock)return;on=true;y0=e.clientY;c.setPointerCapture(e.pointerId);c.style.transition='none'};
+  c.onpointermove=function(e){if(!on)return;dy=e.clientY-y0;c.style.transform='translateY('+(dy>0?dy:dy/3)+'px)';N.style.opacity=Math.max(0,Math.min(1,dy/90));L.style.opacity=Math.max(0,Math.min(1,-dy/70))};
+  c.onpointerup=c.onpointercancel=function(e){if(!on)return;on=false;var up=e.type==='pointerup';
+    if(up&&dy>100){dy=0;skip();return}
+    c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0;
+    if(up&&dy<-70)askRewind();
+    else if(up&&Math.abs(dy)<8){var t=Date.now();if(t-lastTap<320){lastTap=0;var r=c.getBoundingClientRect();dbl(c,e.clientX-r.left,e.clientY-r.top)}else lastTap=t}
+    dy=0};
+}
+function askRewind(){
+  if(!prev){toast('Нет анкеты, к которой можно вернуться');return}
+  sheet('<h3>Вернуться к анкете?</h3><p>Чтобы вернуться к анкете «'+esc(prev.name)+'», заплати 25 вайбов. У тебя сейчас '+(me.vibes||0)+'.</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
 function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length||lock)return;
@@ -277,15 +306,14 @@ function fly(action){
   if(action==='super'&&me.vibes<5){deny('Не хватает вайбов: суперлайк стоит 5');return}
   if(action!=='pass'&&I.likes_left<=0){deny('Лайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
   if(action==='pass'&&I.passes_left<=0){deny('Дизлайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
-  var right=action!=='pass';
-  c.style.transition='transform .25s,opacity .25s';c.style.transform='translateX('+(right?520:-520)+'px) rotate('+(right?16:-16)+'deg)';c.style.opacity=0;hap();
+  c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(620px)':'scale(1.06)';c.style.opacity=0;hap();
   setTimeout(function(){decide(action)},230);
 }
-function skip(right){
+function skip(){
   var c=$('#stack .card:last-child');if(!c||lock)return;
   if(deck.length<2){draw();toast('Других анкет пока нет');loadFeed();return}
-  lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateX('+(right?520:-520)+'px) rotate('+(right?16:-16)+'deg)';c.style.opacity=0;hap();
-  setTimeout(function(){lock=false;deck.push(deck.shift());draw();if(deck.length<3)loadFeed()},230);
+  lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateY(620px)';c.style.opacity=0;hap();
+  setTimeout(function(){lock=false;prev=deck[0];deck.push(deck.shift());draw();if(deck.length<3)loadFeed()},230);
 }
 function dbl(c,x,y){
   if(lock||!me)return;var I=me.info||{};
@@ -294,7 +322,7 @@ function dbl(c,x,y){
   setTimeout(function(){lock=false;fly('like')},520);
 }
 function decide(action){
-  var p=deck.shift();draw();
+  var p=deck.shift();prev=action==='pass'?p:null;draw();
   api('/api/swipe',{target:p.id,action:action}).then(function(r){
     setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hap('medium');loadPairs();sheet('<h3>Взаимная симпатия</h3><p>Вы с '+esc(p.name)+' понравились друг другу.</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
@@ -339,7 +367,7 @@ function hideBoot(){$('#boot').style.display='none'}
 function deny(m){toast(m);draw()}
 function burst(c,x,y){var d=document.createElement('div');d.className='burst';if(x!=null){d.style.left=x+'px';d.style.top=y+'px'}d.innerHTML=ic('heart',96);c.appendChild(d);setTimeout(function(){d.remove()},650)}
 function setTile(u){var t=$('#ptile');t.style.backgroundImage=u?'url("'+u+'")':'';t.textContent=u?'':'Добавь фото'}
-function setInfo(i){if(!i||!me)return;me.info=i;$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+Math.max(0,i.need-i.swipes)+' оценок. ')+'Осталось: лайков '+i.likes_left+', дизлайков '+i.passes_left}
+function setInfo(i){if(!i||!me)return;me.info=i;$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+Math.max(0,i.need-i.swipes)+' оценок. ')+'Осталось: лайков '+i.likes_left+', дизлайков '+i.passes_left;if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
@@ -354,18 +382,46 @@ function openVibes(){
   api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);vibeSheet()}).catch(function(){vibeSheet()});
 }
 function vibeSheet(){
-  var i=me.info||{},ch=me.channel&&!me.channel_done,r=me.ref||{invited:0,earned:0,pending:0};
-  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (5) и возврат анкеты с дизлайком (25).</p>'+
-    '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div><div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке</span></div>'+(ch?'<div class="rule"><b>+25</b><span>за подписку на наш канал</span></div>':'')+
-    '<h3 style="font-size:17px;margin:14px 0 6px">Серия входов</h3><p>Заходи каждый день, награда растёт. Заход засчитывается, когда ты поставишь 15 лайков или дизлайков за день. Свайп «пропустить» не считается. Пропустишь день, и серия начнётся заново.</p>'+
-    '<div class="rule"><b>1–7</b><span>+5, +10, +20, +25, +30, +35, +40</span></div><div class="rule"><b>8+</b><span>+40 за каждый день</span></div>'+
-    '<p style="margin-top:8px">'+(i.claimed?'Сегодня награда получена. Серия: '+i.streak+' дн.':'Сегодня: '+(i.swipes||0)+' из 15 оценок. Серия: '+(i.streak||0)+' дн. Награда за сегодня: +'+(i.reward||5))+'</p>'+
+  var ch=me.channel&&!me.channel_done;
+  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (5) и возврат к прошлой анкете (25).</p>'+
+    '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
+    '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке (вкладка «Друзья»)</span></div>'+
+    '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+25</b><span>за подписку на наш канал</span></div>':'')+
     '<p>Лимиты на день: 15 лайков и 20 дизлайков. Обновляются в полночь по Москве.</p>'+
-    '<h3 style="font-size:17px;margin:14px 0 0">Статистика и друзья</h3>'+
-    '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.earned+'</b><span>За друзей</span></div><div><b>'+(me.earned||0)+'</b><span>Заработано всего</span></div></div>'+
-    '<button class="btn" data-act="refclaim"'+(r.pending?'':' disabled')+'>Получить заработанное'+(r.pending?' (+'+r.pending+')':'')+'</button>'+
-    '<button class="btn ghost" data-act="refshare">Пригласить друга</button>'+
     (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+25)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn ghost" data-act="close">Понятно</button>')
+}
+
+/* вкладка «Друзья» */
+function renderFriends(){
+  var r=me.ref||{invited:0,earned:0,pending:0};
+  $('#friends').innerHTML='<h1>Друзья</h1><p class="sub">Приглашай друзей в KIVO и получай +10 вайбов за каждого, кто создаст анкету по твоей ссылке.</p>'+
+    '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.earned+'</b><span>Получено</span></div><div><b>'+r.pending+'</b><span>Ждёт тебя</span></div></div>'+
+    '<button class="btn" style="margin-top:14px" data-act="refclaim"'+(r.pending?'':' disabled')+'>Получить'+(r.pending?' +'+r.pending+' вайбов':' заработанное')+'</button>'+
+    '<div class="lbl">Твоя ссылка</div><div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
+    '<button class="btn" data-act="refshare">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>'+
+    '<div class="lbl">Как это работает</div>'+
+    '<div class="rule"><b>1</b><span>Отправь ссылку другу</span></div>'+
+    '<div class="rule"><b>2</b><span>Друг открывает бота и создаёт анкету</span></div>'+
+    '<div class="rule"><b>+10</b><span>Ты получаешь вайбы: нажми «Получить» на этой вкладке</span></div>'+
+    '<p class="sub">Считаются только новые пользователи, у которых ещё не было анкеты. Лимита на число друзей нет.</p>';
+}
+
+/* вкладка «Серия» */
+var SB=[5,10,20,25,30,35,40];
+function dayWord(n){var a=n%10,b=n%100;return b>10&&b<15?'дней':a===1?'день':a>1&&a<5?'дня':'дней'}
+function renderStreak(){
+  var i=me.info||{},s=i.streak||0,need=i.need||15,sw=i.swipes||0,pct=Math.min(100,Math.round(sw/need*100)),cells='',today=i.claimed?0:Math.min(s+1,7);
+  for(var d=1;d<=7;d++)cells+='<div class="day'+(d<=Math.min(s,7)?' done':'')+(d===today?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><b>+'+SB[d-1]+'</b></div>';
+  $('#streak').innerHTML='<h1>Серия</h1>'+
+    '<div class="big">'+ic('flame',44)+'<div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span><div class="sub" style="margin:4px 0 0">'+(i.claimed?'Награда за сегодня получена':'Награда за сегодня: +'+(i.reward||5)+' вайбов')+'</div></div></div>'+
+    '<div class="lbl">Прогресс за сегодня</div><div class="bar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
+    '<div class="sub">'+(i.claimed?'Готово, ждём тебя завтра':sw+' из '+need+' оценок (лайки и дизлайки)')+'</div>'+
+    '<div class="lbl">Награды по дням</div><div class="days">'+cells+'</div><p class="sub">С 8-го дня +40 вайбов за каждый день.</p>'+
+    '<div class="lbl">Как это работает</div>'+
+    '<div class="rule"><b>'+need+'</b><span>лайков или дизлайков за день засчитывают заход. Пропуск свайпом вниз не считается</span></div>'+
+    '<div class="rule"><b>1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
+    '<div class="rule"><b>00:00</b><span>новый день начинается в полночь по Москве</span></div>'+
+    '<p class="sub">Осталось сегодня: лайков '+(i.likes_left==null?'–':i.likes_left)+', дизлайков '+(i.passes_left==null?'–':i.passes_left)+'</p>';
 }
 
 /* действия */
@@ -378,12 +434,12 @@ document.addEventListener('click',function(e){
   else if(a==='open')openChat(+t.dataset.id,t.dataset.n);
   else if(a==='back'){leaveChat();loadPairs()}
   else if(a==='vibeinfo')openVibes();
-  else if(a==='refclaim'){api('/api/ref/claim',{}).then(function(r){setVibes(r.vibes);me.earned=r.earned;me.ref=r.ref;vibeSheet();toast('+'+r.got+' вайбов')}).catch(function(e){toast(e.message)})}
+  else if(a==='refclaim'){api('/api/ref/claim',{}).then(function(r){setVibes(r.vibes);me.earned=r.earned;me.ref=r.ref;renderFriends();toast('+'+r.got+' вайбов')}).catch(function(e){toast(e.message)})}
   else if(a==='refshare'){var su='https://t.me/share/url?url='+encodeURIComponent(me.ref_link||'')+'&text='+encodeURIComponent('Заходи в KIVO: знакомства в Telegram');try{TG.openTelegramLink(su)}catch(e){window.open(su)}}
+  else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
   else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();toast(r.awarded?'+25 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rewind')sheet('<h3>Вернуть анкету</h3><p>Вернём последнюю анкету, которой ты поставил дизлайк, в начало ленты. Это стоит 25 вайбов.</p><button class="btn" data-act="rwgo">Вернуть за 25</button><button class="btn ghost" data-act="close">Отмена</button>');
-  else if(a==='rwgo'){closeSheet();api('/api/rewind',{}).then(function(r){setVibes(r.vibes);setInfo(r.info);deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){toast(e.message)})}
+  else if(a==='rwgo'){var pid=prev&&prev.id;closeSheet();if(!pid)return;api('/api/rewind',{target:pid}).then(function(r){setVibes(r.vibes);setInfo(r.info);prev=null;deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
