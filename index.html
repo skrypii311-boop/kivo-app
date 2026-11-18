@@ -222,6 +222,16 @@ nav button{position:relative}
 .send input{border-radius:99px;padding:11px 16px}
 .send .btn{flex:none;width:46px;height:46px;padding:0;border-radius:50%;display:grid;place-items:center}
 .send .btn svg{width:22px;height:22px;stroke-width:2.2}
+
+/* крупное фото в ленте: кнопки поверх карточки */
+#feed{position:absolute}
+.acts{position:absolute;left:16px;right:16px;bottom:28px;z-index:3;padding-top:0;pointer-events:none}
+.acts .col{pointer-events:auto}
+.acts .rb{box-shadow:0 6px 16px -6px rgba(0,0,0,.45)}
+.acts .cap{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.stack .card .ov{padding-bottom:104px}
+.stack{margin-bottom:0}
+.mood{position:absolute;top:14px;left:14px;max-width:55%;padding:5px 12px;border-radius:99px;background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:13px;font-weight:500;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -234,7 +244,7 @@ nav button{position:relative}
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
-        <div class="col"><button class="rb sm" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 5</span></div>
+        <div class="col"><button class="rb sm" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 25</span></div>
         <div class="col"><button class="rb main" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button><span class="cap">Нравится</span></div>
       </div>
     </section>
@@ -289,7 +299,7 @@ IC.pencil='<path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/><path d="M
 IC.send='<path d="M12 19V5M6 11l6-6 6 6"/>';function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
 document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.dataset.i)});
 document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
-var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"];
+var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером","Хочу гулять","Ищу компанию","Настроен поболтать","Хочу в кино","Скучаю","Романтичное"];
 var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
 var LOC=[{c:'KZ',n:'Казахстан',f:'🇰🇿',t:['Алматы','Астана']},{c:'RU',n:'Россия',f:'🇷🇺',t:['Москва','Санкт-Петербург','Краснодар']},
 {c:'BY',n:'Беларусь',f:'🇧🇾',t:['Минск']},{c:'UA',n:'Украина',f:'🇺🇦',t:['Киев']},{c:'AM',n:'Армения',f:'🇦🇲',t:['Ереван','Гюмри']}];
@@ -390,8 +400,8 @@ function save(){
 
 /* лента */
 function cardHTML(p,own){
-  var loc=[place(p),p.mood].filter(Boolean).map(esc).join(', ');
-  return (p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+
+  var loc=[place(p)].filter(Boolean).map(esc).join(', ');
+  return (p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+(p.mood?'<span class="mood">'+esc(p.mood)+'</span>':'')+
   (own?'':'<span class="stamp l">Назад · 25</span><span class="stamp n">Дальше</span><button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>')+
   '<div class="ov">'+(!own&&p.super?'<span class="badge">Поставил(а) тебе суперлайк</span>':'')+'<h2>'+esc(p.name)+' <span>'+p.age+'</span>'+vf(p)+'</h2>'+
   '<div class="meta">'+loc+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
@@ -425,7 +435,7 @@ function askRewind(){
 function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length||lock)return;
   var I=me.info||{};
-  if(action==='super'&&me.vibes<5){deny('Не хватает вайбов: суперлайк стоит 5');return}
+  if(action==='super'&&me.vibes<25){deny('Не хватает вайбов: суперлайк стоит 25');return}
   if(action!=='pass'&&I.likes_left<=0){deny('Лайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
   if(action==='pass'&&I.passes_left<=0){deny('Дизлайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
   c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(-620px)':'scale(1.06)';c.style.opacity=0;hap();
@@ -447,7 +457,7 @@ function decide(action){
   var p=deck.shift();prev=action==='pass'?p:null;draw();
   api('/api/swipe',{target:p.id,action:action}).then(function(r){
     setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>Вы с '+esc(p.name)+' понравились друг другу.</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   }).catch(function(e){if(e.status===429||e.status===402){deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw()}toast(e.message)});
 }
@@ -566,7 +576,7 @@ function openVibes(){
 }
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done;
-  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (5) и возврат к прошлой анкете (25).</p>'+
+  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (25, сразу даёт пару) и возврат к прошлой анкете (25).</p>'+
     '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
     '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 10 свайпов и поставил 4 лайка (вкладка «Друзья»)</span></div>'+
     '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+25</b><span>за подписку на наш канал</span></div>':'')+
