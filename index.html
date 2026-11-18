@@ -216,6 +216,8 @@ nav button{position:relative}
 .m{padding:8px 12px 6px;border-bottom-left-radius:6px;white-space:pre-wrap}
 .m.me{border-bottom-left-radius:18px;border-bottom-right-radius:6px}
 .m .t{display:block;font-size:10.5px;opacity:.6;text-align:right;margin-top:2px;white-space:normal}
+.m .t .rd{margin-left:4px;opacity:.7;letter-spacing:-1px}
+.m .t .rd.on{opacity:1}
 .m.pending{opacity:.6}
 .dsep{align-self:center;font-size:12px;color:var(--mu);padding:3px 10px;margin:6px 0 2px}
 .send{align-items:center;background:var(--sf);border-top:1px solid var(--ln)}
@@ -508,15 +510,23 @@ function renderList(){
   l.innerHTML=pairs.map(function(p){var u=unread(p),sub=p.last?(p.last_me?'Вы: ':'')+p.last:'Новая пара, напиши первым';
     return '<button class="row'+(u?' unread':'')+'" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="">':esc(p.name[0]))+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(sub)+'</small></div>'+(p.last_ts?'<span class="tm">'+fmtL(p.last_ts)+'</span>':'')+(u?'<span class="ud"></span>':'')+'</button>'}).join('');
 }
-function addMsg(m,text,me,t,pending){var b=document.createElement('div');b.className='m'+(me?' me':'')+(pending?' pending':'');b.appendChild(document.createTextNode(text));if(t){var s=document.createElement('span');s.className='t';s.textContent=t;b.appendChild(s)}m.appendChild(b)}
+function addMsg(m,text,me,t,pending,read){
+  var b=document.createElement('div');b.className='m'+(me?' me':'')+(pending?' pending':'');
+  b.appendChild(document.createTextNode(text));
+  if(t||me){var s=document.createElement('span');s.className='t';
+    s.appendChild(document.createTextNode(t||''));
+    if(me){var rd=document.createElement('span');rd.className='rd'+(read?' on':'');rd.textContent=read?' ✓✓':' ✓';s.appendChild(rd)}
+    b.appendChild(s)}
+  m.appendChild(b)
+}
 function renderMsgs(items,force){
   var m=$('#msgs');if(!m||!cur)return;
   var st=m.scrollTop,atB=force||m.scrollHeight-m.scrollTop-m.clientHeight<90;
   m.innerHTML='';
   if(!items.length&&!pend.length){var h=document.createElement('div');h.className='hint';h.textContent='Вы совпали. '+cur.ice;m.appendChild(h)}
   var day='';
-  items.forEach(function(x){var dd=fmtD(x.ts);if(dd!==day){day=dd;var s=document.createElement('div');s.className='dsep';s.textContent=dd;m.appendChild(s)}addMsg(m,x.text,x.me,fmtT(x.ts),false)});
-  pend.forEach(function(o){addMsg(m,o.text,true,'',true)});
+  items.forEach(function(x){var dd=fmtD(x.ts);if(dd!==day){day=dd;var s=document.createElement('div');s.className='dsep';s.textContent=dd;m.appendChild(s)}addMsg(m,x.text,x.me,fmtT(x.ts),false,!!x.read)});
+  pend.forEach(function(o){addMsg(m,o.text,true,'',true,false)});
   m.scrollTop=atB?m.scrollHeight:st;
 }
 function openChat(id,name){
@@ -540,7 +550,9 @@ function loadMsgs(){
   var who=cur.id;
   api('/api/messages?with='+who).then(function(d){
     if(!cur||cur.id!==who)return;
-    var it=d.items,last=it.length?it[it.length-1].id:0,sig=it.length+':'+last;
+    var it=d.items,last=it.length?it[it.length-1].id:0;
+    var reads=it.filter(function(x){return x.me&&x.read}).length;
+    var sig=it.length+':'+last+':'+reads;
     if(last)markSeen(who,last);
     if(sig===nsig)return;
     var first=nsig===null;nsig=sig;msgItems=it;renderMsgs(it,first);
