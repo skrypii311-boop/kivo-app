@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>KIVO</title>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -196,6 +196,32 @@ nav button[aria-current="page"]{color:var(--ac);font-weight:700}
 .acts{padding-top:8px}
 .rb{width:56px;height:56px}.rb.sm{width:46px;height:46px}
 .cap{font-size:11.5px;margin-top:4px}
+
+/* мессенджер и защита от зума */
+*{touch-action:manipulation}
+html,body{overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,.m{-webkit-user-select:text;user-select:text}
+input,textarea,select{font-size:16px}
+nav button{position:relative}
+.dot{top:6px;left:calc(50% + 7px);margin:0}.dot[hidden]{display:none}
+.row>div:nth-child(2){flex:1;min-width:0}
+.row small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .tm{flex:none;font-size:12px;color:var(--mu);align-self:flex-start;margin-top:4px}
+.row .ud{flex:none;width:10px;height:10px;border-radius:50%;background:var(--ac)}
+.row.unread small{color:var(--tx);font-weight:500}
+.chh .av{flex:none}.chh b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chh{background:var(--sf)}
+#msgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.m{padding:8px 12px 6px;border-bottom-left-radius:6px;white-space:pre-wrap}
+.m.me{border-bottom-left-radius:18px;border-bottom-right-radius:6px}
+.m .t{display:block;font-size:10.5px;opacity:.6;text-align:right;margin-top:2px;white-space:normal}
+.m.pending{opacity:.6}
+.dsep{align-self:center;font-size:12px;color:var(--mu);padding:3px 10px;margin:6px 0 2px}
+.send{align-items:center;background:var(--sf);border-top:1px solid var(--ln)}
+.send input{border-radius:99px;padding:11px 16px}
+.send .btn{flex:none;width:46px;height:46px;padding:0;border-radius:50%;display:grid;place-items:center}
+.send .btn svg{width:22px;height:22px;stroke-width:2.2}
 </style>
 </head>
 <body>
@@ -246,7 +272,7 @@ nav button[aria-current="page"]{color:var(--ac);font-weight:700}
   </main>
   <nav class="off">
     <button data-tab="feed"><span data-i="cards"></span>Лента</button>
-    <button data-tab="chats"><span data-i="chat"></span>Пары</button>
+    <button data-tab="chats"><span data-i="chat"></span>Пары<i class="dot" id="pdot" hidden></i></button>
     <button data-tab="streak"><span data-i="flame"></span>Серия</button>
     <button data-tab="friends"><span data-i="users"></span>Друзья</button>
     <button data-tab="me" aria-current="page"><span data-i="user"></span>Профиль</button>
@@ -260,7 +286,7 @@ var TG=window.Telegram&&window.Telegram.WebApp;
 var IC={x:'<path d="M6 6l12 12M18 6L6 18"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',bolt:'<path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z"/>',chat:'<path d="M5 5h14v10H10l-5 4V5z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/>',cards:'<rect x="5" y="4" width="14" height="16" rx="3"/>',check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>'};
 IC.flame='<path d="M12 3c.6 3.6 5 5.6 5 10.2a5 5 0 0 1-10 0c0-2.2 1-3.4 2.2-4.6.2 1.4.9 2.2 1.9 2.4C11 8.6 10.6 5.6 12 3z"/>';IC.users='<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.5 3.2-5.5 6.5-5.5s5.8 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.2 2.4 3.7 5"/>';
 IC.pencil='<path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/>';
-function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
+IC.send='<path d="M12 19V5M6 11l6-6 6 6"/>';function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||24)+'" height="'+(s||24)+'">'+IC[n]+'</svg>'}
 document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.dataset.i)});
 document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
 var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером"];
@@ -421,35 +447,96 @@ function decide(action){
   var p=deck.shift();prev=action==='pass'?p:null;draw();
   api('/api/swipe',{target:p.id,action:action}).then(function(r){
     setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hap('medium');loadPairs();sheet('<h3>Взаимная симпатия</h3><p>Вы с '+esc(p.name)+' понравились друг другу.</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>Вы с '+esc(p.name)+' понравились друг другу.</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   }).catch(function(e){if(e.status===429||e.status===402){deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw()}toast(e.message)});
 }
 
 /* пары и чат */
-function loadPairs(){api('/api/matches').then(function(d){pairs=d.items;renderList()}).catch(function(){})}
+var ICE=["Начни с простого вопроса: какой трек у тебя сейчас на репите?",
+"Начни с простого вопроса: какой фильм ты пересматривал(а) больше всего раз?",
+"Спроси: где бы ты оказался(лась) прямо сейчас, если бы мог(ла) телепортироваться?",
+"Начни с лёгкого: кофе, чай или что-то покрепче по утрам?",
+"Спроси про последнюю книгу, сериал или игру, которая реально зацепила.",
+"Начни с вопроса: что было лучшим моментом этой недели?",
+"Спроси: какое место в твоём городе ты бы показал(а) гостю первым?",
+"Начни с простого: горы, море или большой город? И почему?",
+"Спроси: какая у тебя самая странная привычка?",
+"Начни с вопроса: чему ты научился(лась) недавно просто ради интереса?",
+"Спроси: какое блюдо ты готовишь лучше всего?",
+"Начни с лёгкого: ты жаворонок или сова?",
+"Спроси: куда бы ты поехал(а) завтра, если бы билеты были бесплатными?",
+"Начни с вопроса: какая песня поднимает тебе настроение с первых секунд?",
+"Спроси: какой навык ты хотел(а) бы освоить за месяц?",
+"Начни с простого: как выглядят твои идеальные выходные?"];
+var MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+var SEEN={},KNOWN=null,pairsOnce=false,pend=[],nsig=null,msgItems=[];
+try{SEEN=JSON.parse(localStorage.getItem('kv_seen')||'{}')||{}}catch(e){SEEN={}}
+try{KNOWN=JSON.parse(localStorage.getItem('kv_known')||'null')}catch(e){KNOWN=null}
+function saveSeen(){try{localStorage.setItem('kv_seen',JSON.stringify(SEEN))}catch(e){}}
+function saveKnown(){try{localStorage.setItem('kv_known',JSON.stringify(KNOWN))}catch(e){}}
+function markSeen(id,mid){if(mid&&(SEEN[id]||0)<mid){SEEN[id]=mid;saveSeen()}}
+function markKnown(id){if(KNOWN===null)KNOWN=[];if(KNOWN.indexOf(id)<0){KNOWN.push(id);saveKnown()}}
+function unread(p){if(p.last_id)return !p.last_me&&p.last_id>(SEEN[p.id]||0);return (KNOWN||[]).indexOf(p.id)<0}
+function updDot(){var d=$('#pdot');if(d)d.hidden=!pairs.some(unread)}
+function p2(n){return ('0'+n).slice(-2)}
+function fmtT(ts){var d=new Date(ts*1000);return p2(d.getHours())+':'+p2(d.getMinutes())}
+function fmtD(ts){var d=new Date(ts*1000),t=new Date(),y=new Date(t.getTime()-864e5);if(d.toDateString()===t.toDateString())return 'Сегодня';if(d.toDateString()===y.toDateString())return 'Вчера';return d.getDate()+' '+MON[d.getMonth()]}
+function fmtL(ts){var d=new Date(ts*1000);return d.toDateString()===new Date().toDateString()?fmtT(ts):p2(d.getDate())+'.'+p2(d.getMonth()+1)}
+function loadPairs(){return api('/api/matches').then(function(d){
+  var old={};pairs.forEach(function(x){old[x.id]=1});
+  var fresh=pairsOnce?d.items.filter(function(x){return !old[x.id]}):[];
+  pairs=d.items;
+  if(KNOWN===null){KNOWN=pairs.map(function(x){return x.id});saveKnown();pairs.forEach(function(x){if(x.last_id)SEEN[x.id]=x.last_id});saveSeen()}
+  pairsOnce=true;
+  if(fresh.length&&!$('#sheet').classList.contains('on')){hap('medium');toast('Новая пара: '+fresh[0].name)}
+  renderList();updDot();
+}).catch(function(){})}
 function renderList(){
   var l=$('#list');
   if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь «Нравится» в ленте. Когда симпатия взаимная, человек появится здесь.</p></div>';return}
-  l.innerHTML=pairs.map(function(p){return '<button class="row" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="">':esc(p.name[0]))+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(p.last||'Новая пара, напиши первым')+'</small></div></button>'}).join('');
+  l.innerHTML=pairs.map(function(p){var u=unread(p),sub=p.last?(p.last_me?'Вы: ':'')+p.last:'Новая пара, напиши первым';
+    return '<button class="row'+(u?' unread':'')+'" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="">':esc(p.name[0]))+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(sub)+'</small></div>'+(p.last_ts?'<span class="tm">'+fmtL(p.last_ts)+'</span>':'')+(u?'<span class="ud"></span>':'')+'</button>'}).join('');
+}
+function addMsg(m,text,me,t,pending){var b=document.createElement('div');b.className='m'+(me?' me':'')+(pending?' pending':'');b.appendChild(document.createTextNode(text));if(t){var s=document.createElement('span');s.className='t';s.textContent=t;b.appendChild(s)}m.appendChild(b)}
+function renderMsgs(items,force){
+  var m=$('#msgs');if(!m||!cur)return;
+  var st=m.scrollTop,atB=force||m.scrollHeight-m.scrollTop-m.clientHeight<90;
+  m.innerHTML='';
+  if(!items.length&&!pend.length){var h=document.createElement('div');h.className='hint';h.textContent='Вы совпали. '+cur.ice;m.appendChild(h)}
+  var day='';
+  items.forEach(function(x){var dd=fmtD(x.ts);if(dd!==day){day=dd;var s=document.createElement('div');s.className='dsep';s.textContent=dd;m.appendChild(s)}addMsg(m,x.text,x.me,fmtT(x.ts),false)});
+  pend.forEach(function(o){addMsg(m,o.text,true,'',true)});
+  m.scrollTop=atB?m.scrollHeight:st;
 }
 function openChat(id,name){
-  cur={id:id,name:name};nmsg=-1;closeSheet();tab('chats');
+  var pr=pairs.filter(function(x){return x.id===id})[0];
+  cur={id:id,name:name,ice:ICE[Math.floor(Math.random()*ICE.length)]};nsig=null;pend=[];msgItems=[];closeSheet();tab('chats');
+  markKnown(id);if(pr)markSeen(id,pr.last_id);updDot();
+  $('nav').classList.add('off');
+  try{TG.BackButton.show()}catch(e){}
   var c=$('#chat');c.classList.add('on');
-  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+esc(name[0])+'</div><b>'+esc(name)+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit">Отправить</button></form>';
-  $('#sf').onsubmit=function(e){e.preventDefault();var v=$('#mi').value.trim();if(!v)return;$('#mi').value='';api('/api/messages',{to:cur.id,text:v}).then(loadMsgs).catch(function(e){toast(e.message)})};
-  loadMsgs();clearInterval(poll);poll=setInterval(loadMsgs,4000);
+  var av=pr&&pr.photo?'<img src="'+esc(pr.photo)+'" alt="">':esc(name[0]);
+  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+av+'</div><b>'+esc(name)+(pr?', '+pr.age+vf(pr):'')+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit" aria-label="Отправить">'+ic('send',22)+'</button></form>';
+  $('#mi').onfocus=function(){setTimeout(function(){var m=$('#msgs');if(m)m.scrollTop=m.scrollHeight},300)};
+  $('#sf').onsubmit=function(e){e.preventDefault();var inp=$('#mi'),v=inp.value.trim();if(!v||!cur)return;var to=cur.id,o={text:v};
+    inp.value='';inp.focus();pend.push(o);renderMsgs(msgItems,true);
+    api('/api/messages',{to:to,text:v}).then(function(){pend.splice(pend.indexOf(o),1);nsig=null;loadMsgs()}).catch(function(err){
+      pend.splice(pend.indexOf(o),1);renderMsgs(msgItems,true);var i2=$('#mi');if(i2&&!i2.value)i2.value=v;toast(err.message)})};
+  renderMsgs([],true);loadMsgs();clearInterval(poll);poll=setInterval(loadMsgs,3000);
 }
 function loadMsgs(){
-  if(!cur)return;
-  api('/api/messages?with='+cur.id).then(function(d){
-    var m=$('#msgs');if(!m||d.items.length===nmsg)return;nmsg=d.items.length;
-    m.innerHTML='<div class="hint">Вы совпали. Начни с простого вопроса: какой трек у тебя сейчас на репите?</div>';
-    d.items.forEach(function(x){var b=document.createElement('div');b.className='m'+(x.me?' me':'');b.textContent=x.text;m.appendChild(b)});
-    m.scrollTop=1e6;
-  }).catch(function(){});
+  if(!cur||document.hidden)return;
+  var who=cur.id;
+  api('/api/messages?with='+who).then(function(d){
+    if(!cur||cur.id!==who)return;
+    var it=d.items,last=it.length?it[it.length-1].id:0,sig=it.length+':'+last;
+    if(last)markSeen(who,last);
+    if(sig===nsig)return;
+    var first=nsig===null;nsig=sig;msgItems=it;renderMsgs(it,first);
+  }).catch(function(e){if(e.status===403&&cur){toast('Чат недоступен');leaveChat();loadPairs()}});
 }
-function leaveChat(){clearInterval(poll);cur=null;$('#chat').classList.remove('on')}
+function leaveChat(){clearInterval(poll);cur=null;nsig=null;pend=[];msgItems=[];$('#chat').classList.remove('on');if(me)$('nav').classList.remove('off');try{TG.BackButton.hide()}catch(e){}}
 
 /* жалобы и подтверждение */
 var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
@@ -552,9 +639,12 @@ document.addEventListener('click',function(e){
 /* запуск */
 function start(){
   $('nav').classList.remove('off');tab('feed');loadFeed();loadPairs();
+  setInterval(function(){if(!document.hidden&&!cur&&me)loadPairs()},12000);
 }
 function boot(){
   try{TG.ready();TG.expand()}catch(e){}
+  try{TG.disableVerticalSwipes()}catch(e){}
+  try{TG.BackButton.onClick(function(){if(cur){leaveChat();loadPairs()}})}catch(e){}
   if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3><p>Приложение работает только внутри бота.</p></div>';return}
   fillForm({});
   api('/api/me').then(function(d){
@@ -563,6 +653,8 @@ function boot(){
     hideBoot();start();
   }).catch(function(e){hideBoot();toast(e.message)});
 }
+['gesturestart','gesturechange','gestureend'].forEach(function(e){document.addEventListener(e,function(ev){ev.preventDefault()})});
+document.addEventListener('visibilitychange',function(){if(document.hidden||!me)return;if(cur)loadMsgs();else loadPairs()});
 boot();
 </script>
 </body>
