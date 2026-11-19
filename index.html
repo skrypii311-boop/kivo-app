@@ -324,9 +324,6 @@ nav button{position:relative}
         <label class="l" for="fu">Username</label><input id="fu" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="например, ivan_2000"><div class="uhint" id="uhint"></div>
         <label class="l" for="fa">Возраст</label><input id="fa" type="number" inputmode="numeric" min="18" max="99">
         <label class="l">Мой пол</label><div class="seg" id="gen"><button type="button" data-v="m" aria-pressed="false">Парень</button><button type="button" data-v="f" aria-pressed="false">Девушка</button></div>
-        <div class="f"><div><label class="l" for="fco">Страна</label><select id="fco"></select></div>
-        <div><label class="l" for="fc">Город</label><select id="fc"></select></div></div>
-        <div class="lochint" id="lochint" style="display:none"></div>
         <label class="l" for="fb">О себе</label><textarea id="fb" rows="3" maxlength="140" placeholder="Пара фраз о тебе"></textarea>
         <label class="l">Настроение</label><div class="tg" id="moods"></div>
         <label class="l">Интересы (до 8)</label><div class="tg" id="ints"></div>
@@ -363,8 +360,6 @@ document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML=ic(e.datas
 document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
 var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером","Хочу гулять","Ищу компанию","Настроен поболтать","Хочу в кино","Скучаю","Романтичное"];
 var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
-var LOC=[{c:'KZ',n:'Казахстан',f:'🇰🇿',t:['Алматы','Астана']},{c:'RU',n:'Россия',f:'🇷🇺',t:['Москва','Санкт-Петербург','Краснодар']},
-{c:'BY',n:'Беларусь',f:'🇧🇾',t:['Минск']},{c:'UA',n:'Украина',f:'🇺🇦',t:['Киев']},{c:'AM',n:'Армения',f:'🇦🇲',t:['Ереван','Гюмри']}];
 var editing=true;
 var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,prev=null;
 var $=function(s){return document.querySelector(s)};
@@ -392,30 +387,6 @@ function tab(t){
 }
 document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){leaveChat();tab(b.dataset.tab)}});
 
-/* страна и город */
-function findC(code){for(var i=0;i<LOC.length;i++)if(LOC[i].c===code)return LOC[i];return null}
-function place(p){var C=findC(p.country);return C?C.f+' '+(p.city||C.n):(p.city||'')}
-function fillLoc(country,pick){
-  $('#fco').innerHTML='<option value="" disabled hidden>Выбери страну</option>'+LOC.map(function(C){return '<option value="'+C.c+'">'+C.f+' '+C.n+'</option>'}).join('');
-  $('#fco').value=country||'';cityOpts(country,pick);
-}
-function cityOpts(code,pick){
-  var C=findC(code),s=$('#fc');
-  if(!C){s.innerHTML='<option value="">Сначала выбери страну</option>';s.disabled=true;locHint();return}
-  s.disabled=false;
-  s.innerHTML='<option value="" disabled hidden>Выбери город</option>'+C.t.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>'}).join('')+'<option value="*">🌍 Не указывать город</option>';
-  s.value=pick||'';locHint();
-}
-function locHint(){
-  var h=$('#lochint'),co=$('#fco').value,v=$('#fc').value;
-  if(!co||!v){h.style.display='none';return}
-  h.style.display='flex';
-  if(v==='*'){h.className='lochint warn';h.innerHTML='<span>🌍</span><span>Если не указать город, вам будут показываться анкеты из вашей страны, а когда они закончатся, все доступные анкеты со всего мира.</span>'}
-  else{h.className='lochint';h.innerHTML='<span>📍</span><span>Сначала покажем людей из вашего города, потом из вашей страны, а затем со всего мира.</span>'}
-}
-$('#fco').onchange=function(){cityOpts(this.value,'')};
-$('#fc').onchange=locHint;
-
 /* профиль: просмотр и правка */
 function setEdit(on){
   editing=on;$('#medit').style.display=on?'':'none';$('#mev').style.display=on?'none':'';
@@ -425,7 +396,7 @@ function setEdit(on){
 }
 function renderProfile(){
   if(!me)return;var b=$('#pbox');
-  b.innerHTML='<div class="card pcv" style="--h:'+(me.id%360)+'">'+cardHTML(me,true)+'</div>'+(me.username?'<div class="prog" style="padding-top:8px">Твой username: @'+esc(me.username)+' (виден только модерации)</div>':'')+(me.gender?'<div class="prog">Ты: '+GL[me.gender]+' · в ленте: '+(LL[me.looking]||'')+'</div>':'')+(me.persona?'<div class="ok">'+ic('shield',20)+'<span>Ты управляешь анкетой админа. Вернуться к своей можно в админ-панели.</span></div>':'')+(me.hidden?'<div class="ok">'+ic('dots',20)+'<span>Твоя анкета скрыта от других. Показ включается в режиме редактирования.</span></div>':'');
+  b.innerHTML='<div class="card pcv" style="--h:'+(me.id%360)+'">'+cardHTML(me,true)+'</div>'+(me.username?'<div class="prog" style="padding-top:8px">Твой username: @'+esc(me.username)+' (виден всем пользователям)</div>':'')+(me.gender?'<div class="prog">Ты: '+GL[me.gender]+' · в ленте: '+(LL[me.looking]||'')+'</div>':'')+(me.persona?'<div class="ok">'+ic('shield',20)+'<span>Ты управляешь анкетой админа. Вернуться к своей можно в админ-панели.</span></div>':'')+(me.hidden?'<div class="ok">'+ic('dots',20)+'<span>Твоя анкета скрыта от других. Показ включается в режиме редактирования.</span></div>':'');
   var pc=b.firstChild,pu=(me.photos&&me.photos[me._i||0])||me.photo;if(pu)setBg(pc,pu);
   ownSwipe(pc);
   renderStats();
@@ -442,7 +413,7 @@ function chips(id,list,multi,sel,max){
 }
 function sel(id){return Array.prototype.map.call(document.querySelectorAll(id+' [aria-pressed="true"]'),function(b){return b.textContent})}
 function fillForm(p){
-  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';fu.disabled=!!p.username;uHint(p.username?'Username нельзя изменить. Другим пользователям он не виден, только модерации.':'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');fillLoc(p.country||'',p.country?(p.city||'*'):'');$('#fb').value=p.bio||'';
+  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';fu.disabled=!!p.username;uHint(p.username?'Username нельзя изменить. Он виден всем пользователям в твоей анкете.':'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
   chips('#moods',MOODS,false,p.mood?[p.mood]:[]);chips('#ints',INTS,true,p.interests||[],8);
   if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=p.pref_min||18;$('#rmax').value=(p.pref_max&&p.pref_max<99)?p.pref_max:60;rangeUI();$('#vis').checked=!p.hidden;
 }
@@ -450,21 +421,19 @@ var GL={m:'парень',f:'девушка'},LL={m:'парней',f:'девуш�
 function segSet(id,v){document.querySelectorAll(id+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v))})}
 function segGet(id){var b=document.querySelector(id+' [aria-pressed="true"]');return b?b.dataset.v:''}
 document.querySelectorAll('.seg').forEach(function(g){g.onclick=function(e){var b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))})}});
-var UDEF='От 3 до 20 символов: английские буквы, цифры и _. Должен быть уникальным. Другим пользователям не виден, только модерации.';
+var UDEF='От 3 до 20 символов: английские буквы, цифры и _. Должен быть уникальным. Он будет виден всем пользователям в твоей анкете.';
 function uHint(t,st){var h=$('#uhint');h.textContent=t||UDEF;h.className='uhint'+(st?' '+st:'')}
 $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(0,20);if(v!==this.value)this.value=v;clearTimeout(uT);
   if(v.length<3){uHint(v?'Минимум 3 символа':'',v?'bad':'');return}
   uHint('Проверяем…','');
   uT=setTimeout(function(){api('/api/username?u='+encodeURIComponent(v)).then(function(r){if($('#fu').value!==v)return;uHint(r.ok?'Username свободен':r.reason,r.ok?'good':'bad')}).catch(function(){})},350)};
 function save(){
-  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,country:$('#fco').value,city:($('#fc').value==='*'?'':$('#fc').value),bio:$('#fb').value.trim(),mood:sel('#moods')[0]||null,interests:sel('#ints'),adult:$('#adult').checked,pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=60?99:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
+  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),mood:sel('#moods')[0]||null,interests:sel('#ints'),adult:$('#adult').checked,pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=60?99:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
   $('#err').textContent='';
   if(!$('#fu').disabled&&!/^[A-Za-z0-9_]{3,20}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, только английские буквы, цифры и _';return}
   if(!b.name||!b.age){$('#err').textContent='Заполни имя и возраст';return}
   if(!b.gender){$('#err').textContent='Выбери свой пол';return}
   if(!b.looking){$('#err').textContent='Выбери, кого показывать в ленте';return}
-  if(!b.country){$('#err').textContent='Выбери страну';return}
-  if(!$('#fc').value){$('#err').textContent='Выбери город или пункт «Не указывать город»';return}
   if(b.age<18){$('#err').textContent='KIVO только для тех, кому 18 и больше';return}
   if(!me&&!b.adult){$('#err').textContent='Подтверди, что тебе есть 18 лет';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
@@ -476,7 +445,7 @@ function save(){
 
 /* лента */
 function cardHTML(p,own){
-  var loc=[place(p)].filter(Boolean).map(esc).join(', ');
+  var loc=p.username?'@'+esc(p.username):'';
   return '<div class="pl"></div>'+(p.photos&&p.photos.length>1?'<div class="pdots">'+p.photos.map(function(_,i){return '<i'+(i===(p._i||0)?' class="on"':'')+'></i>'}).join('')+'</div>':'')+(p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+(p.mood?'<span class="mood">'+esc(p.mood)+'</span>':'')+
   (own?'':'<span class="stamp l">Назад · 25</span><span class="stamp n">Дальше</span><button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>')+
   '<div class="ov">'+(!own&&p.super?'<span class="badge">Поставил(а) тебе суперлайк</span>':'')+'<h2><b class="nm">'+esc(p.name)+'</b><span>'+p.age+'</span>'+vf(p)+'</h2>'+
@@ -618,7 +587,7 @@ function openChat(id,name){
   try{TG.BackButton.show()}catch(e){}
   var c=$('#chat');c.classList.add('on');
   var av=pr&&pr.photo?'<img src="'+esc(pr.photo)+'" alt="">':esc(name[0]);
-  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+av+'</div><b>'+esc(name)+(pr?', '+pr.age+vf(pr):'')+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit" aria-label="Отправить">'+ic('send',22)+'</button></form>';
+  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+av+'</div><b>'+esc(name)+(pr?', '+pr.age+vf(pr):'')+(pr&&pr.username?' <small style="color:var(--mu);font-weight:400">@'+esc(pr.username)+'</small>':'')+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit" aria-label="Отправить">'+ic('send',22)+'</button></form>';
   $('#mi').onfocus=function(){setTimeout(function(){var m=$('#msgs');if(m)m.scrollTop=m.scrollHeight},300)};
   $('#sf').onsubmit=function(e){e.preventDefault();var inp=$('#mi'),v=inp.value.trim();if(!v||!cur)return;var to=cur.id,o={text:v};
     inp.value='';inp.focus();pend.push(o);renderMsgs(msgItems,true);
@@ -870,10 +839,11 @@ function adUser(id,nopush){
   adShell('Пользователь','<div id="adbody"><div class="sub">Загрузка…</div></div>');
   api('/api/admin/user?id='+id).then(function(d){
     var u=d.user,h='<div class="row" style="cursor:default">'+adAv(u)+'<div><b>'+esc(u.name||'Без анкеты')+(u.age?', '+u.age:'')+vf(u)+'</b><small>'+(u.username?'@'+esc(u.username):'username не задан')+'</small></div></div>';
-    h+='<div class="hw" style="margin-top:12px">'+rl('ID',u.id)+rl('Статус',u.banned?'<span class="tag red" style="margin:0">Заблокирован</span>':'Активен')+(u.persona?rl('Тип','Анкета админа'):'')+rl('Пол',(GL[u.gender]||'не указан')+(u.looking?' · ищет: '+LL[u.looking]:''))+rl('Место',esc(u.place))+rl('Вайбы',u.vibes)+(u.mood?rl('Настроение',esc(u.mood)):'')+(u.bio?rl('О себе',esc(u.bio)):'')+(u.interests.length?rl('Интересы',esc(u.interests.join(', '))):'')+
+    h+='<div class="hw" style="margin-top:12px">'+rl('ID',u.id)+rl('Статус',u.banned?'<span class="tag red" style="margin:0">Заблокирован</span>':'Активен')+(u.persona?rl('Тип','Анкета админа'):'')+rl('Пол',(GL[u.gender]||'не указан')+(u.looking?' · ищет: '+LL[u.looking]:''))+rl('Вайбы',u.vibes)+(u.mood?rl('Настроение',esc(u.mood)):'')+(u.bio?rl('О себе',esc(u.bio)):'')+(u.interests.length?rl('Интересы',esc(u.interests.join(', '))):'')+
       (d.reports.length?rl('🚩 Жалобы',d.reports.map(function(r){return esc(r.reason)+' × '+r.n}).join('<br>')):'')+'</div>';
     h+='<div class="adbtns"><button class="btn'+(u.banned?'':' danger')+'" data-act="adban" data-id="'+u.id+'" data-on="'+(u.banned?0:1)+'" data-n="'+esc(u.name||u.username||u.id)+'">'+(u.banned?'Разблокировать':'Заблокировать')+'</button>'+
       '<button class="btn ghost" data-act="adver" data-id="'+u.id+'" data-on="'+(u.verified?0:1)+'">'+(u.verified?'Снять галочку':'Дать галочку')+'</button></div>';
+    h+='<div class="lbl">Вайбы: '+u.vibes+'</div><div class="f"><input id="advn" type="number" inputmode="numeric" min="1" max="100000" placeholder="Сколько вайбов"><button class="btn sm" data-act="advibe" data-id="'+u.id+'" data-s="1">Начислить</button><button class="btn ghost sm" data-act="advibe" data-id="'+u.id+'" data-s="-1">Забрать</button></div>';
     h+='<div class="lbl">Чаты ('+d.chats.length+')</div>'+(d.chats.length?d.chats.map(function(c){
       return '<button class="row" data-act="adchat" data-a="'+u.id+'" data-b="'+c.id+'"><div class="av" style="--h:'+(c.id%360)+'">'+esc(((c.name||c.username||'?')+'')[0])+'</div><div><b>'+esc(c.name||'Без анкеты')+(c.banned?'<span class="tag red">Блок</span>':'')+'</b><small>'+(c.username?'@'+esc(c.username)+' · ':'')+(c.from_user?'он(а): ':'')+esc(c.last)+'</small></div><span class="cnt">'+c.n+' · '+fmtL(c.ts)+'</span></button>'}).join(''):'<div class="sub">Переписок нет</div>');
     $('#adbody').innerHTML=h;
@@ -901,6 +871,8 @@ document.addEventListener('click',function(e){
   else if(a==='addel')sheet('<h3>Удалить анкету «'+esc(t.dataset.n)+'»?</h3><p>Анкета, её фото, лайки и все её чаты будут удалены без возможности восстановления.</p><button class="btn danger" data-act="addelgo" data-id="'+id+'">Удалить</button><button class="btn ghost" data-act="close">Отмена</button>');
   else if(a==='addelgo')api('/api/admin/persona/delete',{id:id}).then(function(r){closeSheet();if(r.was_active){closeAdmin();resetApp()}else adPersonas();toast('Анкета удалена')}).catch(function(x){toast(x.message)});
   else if(a==='aduser')adUser(id);
+  else if(a==='advibe'){var n=parseInt(($('#advn')||{}).value,10),sg=+t.dataset.s;if(!n||n<1||n>100000){toast('Введи число от 1 до 100000');return}
+    api('/api/admin/vibes',{id:id,delta:n*sg}).then(function(r){toast((sg>0?'Начислено ':'Списано ')+n+'. Баланс: '+r.vibes);if(me&&me.id===id)setVibes(r.vibes);adUser(id,true)}).catch(function(x){toast(x.message)})}
   else if(a==='adchat')adChat(+t.dataset.a,+t.dataset.b);
   else if(a==='adban'){var on=t.dataset.on==='1';sheet('<h3>'+(on?'Заблокировать':'Разблокировать')+' '+esc(t.dataset.n)+'?</h3><p>'+(on?'Пользователь потеряет доступ к приложению, его анкета пропадёт из ленты, а пары и чаты станут недоступны.':'Доступ к приложению вернётся.')+'</p><button class="btn'+(on?' danger':'')+'" data-act="adbango" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Заблокировать':'Разблокировать')+'</button><button class="btn ghost" data-act="close">Отмена</button>')}
   else if(a==='adbango')api('/api/admin/ban',{id:id,on:t.dataset.on==='1'}).then(function(){closeSheet();toast(t.dataset.on==='1'?'Заблокирован':'Разблокирован');adUser(id,true)}).catch(function(x){closeSheet();toast(x.message)});
