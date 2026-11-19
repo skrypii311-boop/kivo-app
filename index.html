@@ -288,6 +288,11 @@ nav button{position:relative}
 .seg{display:flex;gap:8px}
 .seg button{flex:1;padding:11px 6px;border-radius:14px;border:1px solid var(--ln);background:var(--sf);font-weight:500;box-shadow:var(--sh)}
 .seg button[aria-pressed="true"]{background:var(--grad);color:#fff;border-color:transparent}
+#peer{position:absolute;inset:0;z-index:7;background:var(--bg);display:none;flex-direction:column}
+#peer.on{display:flex}
+#peerbody{flex:1;min-height:0;overflow-y:auto;padding:12px 16px 20px;overscroll-behavior:contain}
+#peerbody>*{flex-shrink:0}
+.peerbtn{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
 .row .cnt{flex:none;font-size:12px;color:var(--mu);align-self:flex-start;margin-top:4px}
 </style>
 </head>
@@ -345,7 +350,7 @@ nav button{position:relative}
     <button data-tab="friends"><span data-i="users"></span>Друзья</button>
     <button data-tab="me" aria-current="page"><span data-i="user"></span>Профиль</button>
   </nav>
-  <div id="admin"></div>
+  <div id="admin"></div><div id="peer"></div>
   <div id="shade"></div><div id="sheet" role="dialog" aria-modal="true"></div>
   <div id="toast"></div>
 </div>
@@ -589,7 +594,7 @@ function openChat(id,name){
   try{TG.BackButton.show()}catch(e){}
   var c=$('#chat');c.classList.add('on');
   var av=pr&&pr.photo?'<img src="'+esc(pr.photo)+'" alt="">':esc(name[0]);
-  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+av+'</div><b>'+esc(name)+(pr?', '+pr.age+vf(pr):'')+(pr&&pr.username?' <small style="color:var(--mu);font-weight:400">@'+esc(pr.username)+'</small>':'')+'</b><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit" aria-label="Отправить">'+ic('send',22)+'</button></form>';
+  c.innerHTML='<div class="chh"><button data-act="back" aria-label="Назад">'+ic('back')+'</button><button class="peerbtn" data-act="peer" data-id="'+id+'" aria-label="Открыть профиль"><div class="av" style="--h:'+(id%360)+';width:38px;height:38px">'+av+'</div><b>'+esc(name)+(pr?', '+pr.age+vf(pr):'')+(pr&&pr.username?' <small style="color:var(--mu);font-weight:400">@'+esc(pr.username)+'</small>':'')+'</b></button><button data-act="reportchat" aria-label="Пожаловаться">'+ic('dots',20)+'</button></div><div id="msgs"></div><form class="send" id="sf"><input id="mi" placeholder="Сообщение" autocomplete="off" maxlength="500"><button class="btn" type="submit" aria-label="Отправить">'+ic('send',22)+'</button></form>';
   $('#mi').onfocus=function(){setTimeout(function(){var m=$('#msgs');if(m)m.scrollTop=m.scrollHeight},300)};
   $('#sf').onsubmit=function(e){e.preventDefault();var inp=$('#mi'),v=inp.value.trim();if(!v||!cur)return;var to=cur.id,o={text:v};
     inp.value='';inp.focus();pend.push(o);renderMsgs(msgItems,true);
@@ -610,7 +615,7 @@ function loadMsgs(){
     var first=nsig===null;nsig=sig;msgItems=it;renderMsgs(it,first);
   }).catch(function(e){if(e.status===403&&cur){toast('Чат недоступен');leaveChat();loadPairs()}});
 }
-function leaveChat(){clearInterval(poll);cur=null;nsig=null;pend=[];msgItems=[];$('#chat').classList.remove('on');if(me)$('nav').classList.remove('off');try{TG.BackButton.hide()}catch(e){}}
+function leaveChat(){$('#peer').classList.remove('on');clearInterval(poll);cur=null;nsig=null;pend=[];msgItems=[];$('#chat').classList.remove('on');if(me)$('nav').classList.remove('off');try{TG.BackButton.hide()}catch(e){}}
 
 /* жалобы и подтверждение */
 var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
@@ -662,8 +667,8 @@ function photoSwipe(c,p){
   return A;
 }
 /* свайп по фото на своей карточке в профиле */
-function ownSwipe(pc){
-  var ps=photoSwipe(pc,me),x0=0,y0=0,dx=0,on=false,mode='',t0=0,many=me.photos&&me.photos.length>1;
+function ownSwipe(pc,pp){pp=pp||me;
+  var ps=photoSwipe(pc,pp),x0=0,y0=0,dx=0,on=false,mode='',t0=0,many=pp.photos&&pp.photos.length>1;
   pc.onpointerdown=function(e){if(!many||ps.busy())return;on=true;x0=e.clientX;y0=e.clientY;dx=0;mode='';t0=Date.now();try{pc.setPointerCapture(e.pointerId)}catch(x){}};
   pc.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;var dy=e.clientY-y0;
     if(!mode&&(Math.abs(dx)>10||Math.abs(dy)>10))mode=Math.abs(dx)>Math.abs(dy)?'h':'v';
@@ -696,6 +701,22 @@ function vibeSheet(){
     '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+30</b><span>за подписку на наш канал</span></div>':'')+
     '<p>Каждые 4 часа даётся 20 бесплатных свайпов (лайк, дизлайк, суперлайк или пропуск). Они не накапливаются: через 4 часа снова 20. Дополнительные можно купить за вайбы.</p>'+
     (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Понятно</button>')
+}
+
+/* страница собеседника */
+function openPeer(id){
+  var el=$('#peer');el.classList.add('on');
+  el.innerHTML='<div class="adh"><button data-act="peerclose" aria-label="Назад">'+ic('back')+'</button><b>Профиль</b></div><div id="peerbody"><div class="sub">Загрузка…</div></div>';
+  try{TG.BackButton.show()}catch(e){}
+  api('/api/profile?id='+id).then(renderPeer).catch(function(e){toast(e.message);closePeer()});
+}
+function closePeer(){$('#peer').classList.remove('on');if(!cur&&!$('#admin').classList.contains('on')){try{TG.BackButton.hide()}catch(e){}}}
+function renderPeer(d){
+  var p=d.profile,s=d.stats,b=$('#peerbody');if(!b||!$('#peer').classList.contains('on'))return;p._i=0;
+  b.innerHTML='<div class="card pcv" style="--h:'+(p.id%360)+'">'+cardHTML(p,true)+'</div>'+
+    '<div class="stats"><div><b>'+s.likes+'</b><span>Лайки</span></div><div><b>'+s.passes+'</b><span>Дизлайки</span></div><div><b>'+s.matches+'</b><span>Пары</span></div></div>'+
+    '<div class="hw" style="margin-top:14px">'+rl('Username',p.username?'@'+esc(p.username):'не задан')+rl('Имя',esc(p.name))+rl('Возраст',p.age)+(GL[p.gender]?rl('Пол',GL[p.gender]):'')+(p.verified?rl('Статус','Анкета подтверждена'):'')+'</div>';
+  var pc=b.querySelector('.card'),pu=(p.photos&&p.photos[0])||p.photo;if(pu)setBg(pc,pu);ownSwipe(pc,p);
 }
 
 /* свайпы: тексты, время, магазин */
@@ -763,6 +784,8 @@ document.addEventListener('click',function(e){
   else if(a==='back'){leaveChat();loadPairs()}
   else if(a==='vibeinfo')openVibes();
   else if(a==='shop')swipeShop(false);
+  else if(a==='peer')openPeer(+t.dataset.id);
+  else if(a==='peerclose')closePeer();
   else if(a==='buy'){var bn=+t.dataset.n;api('/api/swipes/buy',{pack:bn}).then(function(r){setVibes(r.vibes);setInfo(r.info);closeSheet();toast('+'+bn+' свайпов')}).catch(function(x){toast(x.message)})}
   else if(a==='refshare'){var su='https://t.me/share/url?url='+encodeURIComponent(me.ref_link||'')+'&text='+encodeURIComponent('Заходи в KIVO: знакомства в Telegram');try{TG.openTelegramLink(su)}catch(e){window.open(su)}}
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
@@ -807,7 +830,7 @@ function resetApp(){   // смена анкеты админом: приложе
 function boot(){
   try{TG.ready();TG.expand()}catch(e){}
   try{TG.disableVerticalSwipes()}catch(e){}
-  try{TG.BackButton.onClick(function(){if($('#admin').classList.contains('on')){adBack();return}if(cur){leaveChat();loadPairs()}})}catch(e){}
+  try{TG.BackButton.onClick(function(){if($('#peer').classList.contains('on')){closePeer();return}if($('#admin').classList.contains('on')){adBack();return}if(cur){leaveChat();loadPairs()}})}catch(e){}
   if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3><p>Приложение работает только внутри бота.</p></div>';return}
   try{if(localStorage.getItem('kv_hint'))hideHint()}catch(e){}
   fillForm({});load();
