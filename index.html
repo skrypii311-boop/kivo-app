@@ -537,6 +537,7 @@ var ICE=["Начни с простого вопроса: какой трек у 
 "Начни с вопроса: какая песня поднимает тебе настроение с первых секунд?",
 "Спроси: какой навык ты хотел(а) бы освоить за месяц?",
 "Начни с простого: как выглядят твои идеальные выходные?"];
+var MCACHE={};   // последняя загруженная переписка по каждому собеседнику: чат открывается сразу с сообщениями
 var MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 var SEEN={},KNOWN=null,pairsOnce=false,pend=[],nsig=null,msgItems=[],UID=0,started=false,uT=null;
 function lsGet(k,def){try{var v=JSON.parse(localStorage.getItem(k));return v==null?def:v}catch(e){return def}}
@@ -580,7 +581,7 @@ function renderMsgs(items,force){
   var m=$('#msgs');if(!m||!cur)return;
   var st=m.scrollTop,atB=force||m.scrollHeight-m.scrollTop-m.clientHeight<90;
   m.innerHTML='';
-  if(!items.length&&!pend.length){var h=document.createElement('div');h.className='hint';h.textContent='Вы совпали. '+cur.ice+' Сообщения в чатах могут проверяться модерацией.';m.appendChild(h)}
+  if(!items.length&&!pend.length&&cur.loaded){var h=document.createElement('div');h.className='hint';h.textContent='Вы совпали. '+cur.ice+' Сообщения в чатах могут проверяться модерацией.';m.appendChild(h)}
   var day='';
   items.forEach(function(x){var dd=fmtD(x.ts);if(dd!==day){day=dd;var s=document.createElement('div');s.className='dsep';s.textContent=dd;m.appendChild(s)}addMsg(m,x.text,x.me,fmtT(x.ts),false,!!x.read)});
   pend.forEach(function(o){addMsg(m,o.text,true,'',true,false)});
@@ -588,7 +589,7 @@ function renderMsgs(items,force){
 }
 function openChat(id,name){
   var pr=pairs.filter(function(x){return x.id===id})[0];
-  cur={id:id,name:name,ice:ICE[Math.floor(Math.random()*ICE.length)]};nsig=null;pend=[];msgItems=[];closeSheet();tab('chats');
+  cur={id:id,name:name,ice:ICE[Math.floor(Math.random()*ICE.length)],loaded:!!MCACHE[id]};nsig=null;pend=[];msgItems=MCACHE[id]||[];closeSheet();tab('chats');
   markKnown(id);if(pr)markSeen(id,pr.last_id);updDot();
   $('nav').classList.add('off');
   try{TG.BackButton.show()}catch(e){}
@@ -600,7 +601,7 @@ function openChat(id,name){
     inp.value='';inp.focus();pend.push(o);renderMsgs(msgItems,true);
     api('/api/messages',{to:to,text:v}).then(function(){pend.splice(pend.indexOf(o),1);nsig=null;loadMsgs()}).catch(function(err){
       pend.splice(pend.indexOf(o),1);renderMsgs(msgItems,true);var i2=$('#mi');if(i2&&!i2.value)i2.value=v;toast(err.message)})};
-  renderMsgs([],true);loadMsgs();clearInterval(poll);poll=setInterval(loadMsgs,3000);
+  renderMsgs(msgItems,true);loadMsgs();clearInterval(poll);poll=setInterval(loadMsgs,3000);
 }
 function loadMsgs(){
   if(!cur||document.hidden)return;
@@ -610,7 +611,7 @@ function loadMsgs(){
     var it=d.items,last=it.length?it[it.length-1].id:0;
     var reads=it.filter(function(x){return x.me&&x.read}).length;
     var sig=it.length+':'+last+':'+reads;
-    if(last)markSeen(who,last);
+    if(last)markSeen(who,last);cur.loaded=true;MCACHE[who]=it;
     if(sig===nsig)return;
     var first=nsig===null;nsig=sig;msgItems=it;renderMsgs(it,first);
   }).catch(function(e){if(e.status===403&&cur){toast('Чат недоступен');leaveChat();loadPairs()}});
