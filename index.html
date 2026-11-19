@@ -371,11 +371,11 @@ function sheet(h){$('#sheet').innerHTML=h;$('#shade').classList.add('on');$('#sh
 function closeSheet(){$('#shade').classList.remove('on');$('#sheet').classList.remove('on')}
 $('#shade').onclick=closeSheet;
 function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b)}
-  return fetch(path,o).then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;throw e}return d})})}
+  return fetch(path,o).then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})})}
 function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
 
 /* вкладки */
-function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);if(cb)cb()}).catch(function(){})}
+function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;me.uname_wait=d.uname_wait;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);if(cb)cb()}).catch(function(){})}
 function tab(t){
   ['feed','chats','streak','friends','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
@@ -413,7 +413,7 @@ function chips(id,list,multi,sel,max){
 }
 function sel(id){return Array.prototype.map.call(document.querySelectorAll(id+' [aria-pressed="true"]'),function(b){return b.textContent})}
 function fillForm(p){
-  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';fu.disabled=!!p.username;uHint(p.username?'Username нельзя изменить. Он виден всем пользователям в твоей анкете.':'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
+  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';var uw=unameWait(p);fu.disabled=uw>0;uHint(uw>0?'Username можно менять раз в 3 часа. Следующая смена через '+fmtWait(uw)+'.':'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
   chips('#moods',MOODS,false,p.mood?[p.mood]:[]);chips('#ints',INTS,true,p.interests||[],8);
   if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=p.pref_min||18;$('#rmax').value=(p.pref_max&&p.pref_max<99)?p.pref_max:60;rangeUI();$('#vis').checked=!p.hidden;
 }
@@ -421,7 +421,7 @@ var GL={m:'парень',f:'девушка'},LL={m:'парней',f:'девуш�
 function segSet(id,v){document.querySelectorAll(id+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v))})}
 function segGet(id){var b=document.querySelector(id+' [aria-pressed="true"]');return b?b.dataset.v:''}
 document.querySelectorAll('.seg').forEach(function(g){g.onclick=function(e){var b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))})}});
-var UDEF='От 3 до 20 символов: английские буквы, цифры и _. Должен быть уникальным. Он будет виден всем пользователям в твоей анкете.';
+var UDEF='От 3 до 20 символов: английские буквы, цифры и _. Должен быть уникальным. Виден всем пользователям. Менять можно раз в 3 часа.';
 function uHint(t,st){var h=$('#uhint');h.textContent=t||UDEF;h.className='uhint'+(st?' '+st:'')}
 $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(0,20);if(v!==this.value)this.value=v;clearTimeout(uT);
   if(v.length<3){uHint(v?'Минимум 3 символа':'',v?'bad':'');return}
@@ -438,7 +438,7 @@ function save(){
   if(!me&&!b.adult){$('#err').textContent='Подтверди, что тебе есть 18 лет';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
   api('/api/me',b).then(function(){return api('/api/me')}).then(function(d){
-    var first=!me;me=d;setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';setEdit(false);
+    var first=!me;me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';setEdit(false);
     toast(first?'Анкета создана':'Сохранено');if(!started)start()
   }).catch(function(e){$('#err').textContent=e.message});
 }
@@ -486,9 +486,8 @@ function askRewind(){
 function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length||lock)return;
   var I=me.info||{};
+  if(I.swipes&&I.swipes.left<=0){noSwipes();return}
   if(action==='super'&&me.vibes<25){deny('Не хватает вайбов: суперлайк стоит 25');return}
-  if(action!=='pass'&&I.likes_left<=0){deny('Лайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
-  if(action==='pass'&&I.passes_left<=0){deny('Дизлайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
   c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(-620px)':'scale(1.06)';c.style.opacity=0;hap();
   setTimeout(function(){decide(action)},230);
 }
@@ -500,7 +499,7 @@ function skip(){
 }
 function dbl(c,x,y){
   if(lock||!me)return;var I=me.info||{};
-  if(I.likes_left<=0){deny('Лайки на сегодня закончились. Счётчик обновится в полночь по Москве');return}
+  if(I.swipes&&I.swipes.left<=0){noSwipes();return}
   lock=true;burst(c,x,y);hap('medium');
   setTimeout(function(){lock=false;fly('like')},520);
 }
@@ -510,7 +509,9 @@ function decide(action){
     setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
-  }).catch(function(e){if(e.status===429||e.status===402){deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw()}toast(e.message)});
+  }).catch(function(e){if(e.status===429||e.status===402){deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw()}
+    if(e.code==='no_swipes'){api('/api/me').then(function(d){setInfo(d.info)}).catch(function(){}).then(noSwipes);return}
+    toast(e.message)});
 }
 
 /* пары и чат */
@@ -672,7 +673,7 @@ function ownSwipe(pc){
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
-function setInfo(i){if(!i||!me)return;me.info=i;var left=Math.max(0,i.need-i.done);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+left+' '+plural(left,'лайк','лайка','лайков')+'. ')+'Осталось: лайков '+i.likes_left+', дизлайков '+i.passes_left;if($('#streak').classList.contains('on'))renderStreak()}
+function setInfo(i){if(!i||!me)return;me.info=i;var left=Math.max(0,i.need-i.done);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+left+' '+plural(left,'лайк','лайка','лайков')+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
@@ -688,12 +689,25 @@ function openVibes(){
 }
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
-  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (25, сразу даёт пару) и возврат к прошлой анкете (25).</p>'+
+  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Вайбы тратятся на суперлайк (25, сразу даёт пару), возврат к прошлой анкете (25) и дополнительные свайпы.</p>'+
     '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
     '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 10 свайпов и поставил 4 лайка (вкладка «Друзья»)</span></div>'+
     '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+30</b><span>за подписку на наш канал</span></div>':'')+
-    '<p>Лимиты на день: 15 лайков и 20 дизлайков. Обновляются в полночь по Москве.</p>'+
-    (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn ghost" data-act="close">Понятно</button>')
+    '<p>Каждые 4 часа даётся 20 бесплатных свайпов (лайк, дизлайк или суперлайк). Они не накапливаются: через 4 часа снова 20. Дополнительные можно купить за вайбы.</p>'+
+    (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Понятно</button>')
+}
+
+/* свайпы: тексты, время, магазин */
+var PACKS=[[10,20],[20,35],[50,85]];
+function fmtWait(s){s=Math.max(0,Math.round(s));if(s<60)return 'меньше минуты';var h=Math.floor(s/3600),m=Math.ceil((s%3600)/60);if(m===60){h++;m=0}return (h?h+' ч ':'')+(m?m+' мин':'')}
+function unameWait(p){return Math.max(0,(p.uname_wait||0)-Math.floor((Date.now()-(p._ut||Date.now()))/1000))}
+function swText(i){var s=i.swipes;if(!s)return '';return 'Свайпов: '+s.left+(s.bonus?' (купленных: '+s.bonus+')':'')+(s.free_left<=0&&s.reset_in?'. Бесплатные вернутся через '+fmtWait(s.reset_in):'')}
+function noSwipes(){swipeShop(true)}
+function swipeShop(empty){
+  var s=(me.info&&me.info.swipes)||{reset_in:0};
+  sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty?'Бесплатные 20 свайпов выдаются каждые 4 часа'+(s.reset_in?': следующие через '+fmtWait(s.reset_in):'')+'. Можно подождать или купить дополнительные свайпы, они не сгорают. ':'Купленные свайпы не сгорают и тратятся после бесплатных. ')+'У тебя '+(me.vibes||0)+' вайбов.</p>'+
+    PACKS.map(function(p){return '<button class="btn" data-act="buy" data-n="'+p[0]+'">'+p[0]+' свайпов · '+p[1]+' вайбов</button>'}).join('')+
+    '<button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
 }
 
 /* вкладка «Друзья» */
@@ -717,7 +731,7 @@ var SB=[5,10,20,25,30,35,40];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
-  var i=me.info||{},s=i.streak||0,need=i.need||15,done=i.done||0,pct=Math.min(100,Math.round(done/need*100)),cells='',today=i.claimed?0:Math.min(s+1,7),left=i.likes_left;
+  var i=me.info||{},s=i.streak||0,need=i.need||15,done=i.done||0,pct=Math.min(100,Math.round(done/need*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
@@ -730,7 +744,7 @@ function renderStreak(){
     '<div class="hw"><div class="rule"><b>'+need+' ❤️</b><span>лайков за день засчитывают заход. Пропуск свайпом вверх и дизлайки не считаются</span></div>'+
     '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
     '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>'+
-    '<p class="sub" style="margin-top:12px">Осталось сегодня: '+(left==null?'–':left+' '+plural(left,'лайк','лайка','лайков'))+'</p>';
+    '<p class="sub" style="margin-top:12px">Свайпов осталось: '+(sw?sw.left:'–')+'</p>';
 }
 
 /* действия */
@@ -745,6 +759,8 @@ document.addEventListener('click',function(e){
   else if(a==='open')openChat(+t.dataset.id,t.dataset.n);
   else if(a==='back'){leaveChat();loadPairs()}
   else if(a==='vibeinfo')openVibes();
+  else if(a==='shop')swipeShop(false);
+  else if(a==='buy'){var bn=+t.dataset.n;api('/api/swipes/buy',{pack:bn}).then(function(r){setVibes(r.vibes);setInfo(r.info);closeSheet();toast('+'+bn+' свайпов')}).catch(function(x){toast(x.message)})}
   else if(a==='refshare'){var su='https://t.me/share/url?url='+encodeURIComponent(me.ref_link||'')+'&text='+encodeURIComponent('Заходи в KIVO: знакомства в Telegram');try{TG.openTelegramLink(su)}catch(e){window.open(su)}}
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
@@ -770,7 +786,7 @@ function load(){
     IS_ADMIN=!!d.is_admin;$('#adminb').hidden=!IS_ADMIN;$('#adminb').classList.toggle('act',!!d.persona);
     loadLocal(d.uid,d.persona);
     if(!d.exists){me=null;setEdit(true);$('#fn').value=d.name||'';myPhotos=(d.photos||[]).slice();renderPhotos();$('#adultrow').style.display='';hideBoot();return}
-    me=d;setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';hideBoot();
+    me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';hideBoot();
     if(!d.username||!d.gender||!d.looking){setEdit(true);toast(d.username?'Укажи свой пол и кого показывать':'Придумай username, чтобы продолжить');return}   // старые анкеты без username или пола
     setEdit(false);start();
   }).catch(function(e){hideBoot();toast(e.message)});
