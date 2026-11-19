@@ -644,7 +644,7 @@ function leaveChat(){clearInterval(poll);cur=null;nsig=null;pend=[];msgItems=[];
 /* жалобы и подтверждение */
 var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
 function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3><p>Аккаунт сразу пропадёт у тебя. Жалобу проверит модератор, решение о блокировке принимает он.</p>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
-function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me){v.style.display='none';return}v.style.display='flex';
+function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me||me.persona){v.style.display='none';return}v.style.display='flex';
   var btn='<button class="btn" style="padding:8px 14px" data-act="verify">Пройти</button>';
   v.innerHTML=me.verified?'<span class="vf lg">'+ic('check',14)+'</span><span>Анкета подтверждена</span>':me.vstatus==='pending'?'<span>Кружок на проверке. Ответ придёт в чат с ботом.</span>':me.vstatus==='rejected'?'<span style="flex:1">Подтверждение отклонено'+(me.vcomment?': '+esc(me.vcomment):'')+'. Запиши новый кружок.</span>'+btn:'<span style="flex:1">Подтверди анкету кружком и получи +50 вайбов</span>'+btn}
 var myPhotos=[],pickSlot=0,lastTap=0;
@@ -701,7 +701,7 @@ function ownSwipe(pc){
     if(m==='h')ps.end(up?dx:0,up&&Date.now()-t0<250);
     else if(up&&Math.abs(dx)<8&&!m){var r=pc.getBoundingClientRect(),px=(e.clientX-r.left)/r.width;if(px<.4||px>.6)ps.go(px>.5?1:-1)}};
 }
-function renderChannel(){var r=$('#crow');if(!r)return;if(!me||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
+function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
 function setInfo(i){if(!i||!me)return;me.info=i;var left=Math.max(0,i.need-i.done);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+left+' '+plural(left,'лайк','лайка','лайков')+'. ')+'Осталось: лайков '+i.likes_left+', дизлайков '+i.passes_left;if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
@@ -718,7 +718,7 @@ function openVibes(){
   api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);vibeSheet()}).catch(function(){vibeSheet()});
 }
 function vibeSheet(){
-  var ch=me.channel&&!me.channel_done;
+  var ch=me.channel&&!me.channel_done&&!me.persona;
   sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Лайки и дизлайки бесплатны, вайбы тратятся на суперлайк (25, сразу даёт пару) и возврат к прошлой анкете (25).</p>'+
     '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
     '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 10 свайпов и поставил 4 лайка (вкладка «Друзья»)</span></div>'+
