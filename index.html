@@ -297,7 +297,7 @@ nav button{position:relative}
   <header><span class="logo">KIVO</span><div class="hr"><button class="adminb" id="adminb" data-act="admin" aria-label="Админ-панель" hidden><span data-i="shield"></span></button><button class="vibes" data-act="vibeinfo" aria-label="Что такое вайбы"><span id="ico-bolt"></span><b id="vn">–</b><span>вайбы</span></button></div></header>
   <main>
     <section id="feed">
-      <div class="prog" id="prog"></div><div class="prog" id="hint" style="padding-top:0">Свайп вверх: пропустить · вниз: вернуть · тап по краям или свайп вбок: фото · двойной тап: лайк</div>
+      <div class="prog" id="prog"></div><div class="prog" id="hint" style="padding-top:0">Свайп вверх: пропустить (тратит свайп) · вниз: вернуть · тап по краям или свайп вбок: фото · двойной тап: лайк</div>
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
@@ -493,9 +493,10 @@ function fly(action){
 }
 function skip(){
   var c=$('#stack .card:last-child');if(!c||lock)return;
-  if(deck.length<2){draw();toast('Других анкет пока нет');loadFeed();return}
+  var I=me.info||{};
+  if(I.swipes&&I.swipes.left<=0){draw();noSwipes();return}
   hideHint();lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateY(-620px)';c.style.opacity=0;hap();
-  setTimeout(function(){lock=false;prev=deck[0];deck.push(deck.shift());draw();if(deck.length<3)loadFeed()},230);
+  setTimeout(function(){lock=false;decide('skip')},230);
 }
 function dbl(c,x,y){
   if(lock||!me)return;var I=me.info||{};
@@ -504,7 +505,7 @@ function dbl(c,x,y){
   setTimeout(function(){lock=false;fly('like')},520);
 }
 function decide(action){
-  hideHint();var p=deck.shift();prev=action==='pass'?p:null;draw();
+  hideHint();var p=deck.shift();prev=(action==='pass'||action==='skip')?p:null;draw();
   api('/api/swipe',{target:p.id,action:action}).then(function(r){
     setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
@@ -673,7 +674,7 @@ function ownSwipe(pc){
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
-function setInfo(i){if(!i||!me)return;me.info=i;var left=Math.max(0,i.need-i.done);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+left+' '+plural(left,'лайк','лайка','лайков')+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
+function setInfo(i){if(!i||!me)return;me.info=i;$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+leftText(i)+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
@@ -691,9 +692,9 @@ function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
   sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Вайбы тратятся на суперлайк (25, сразу даёт пару), возврат к прошлой анкете (25) и дополнительные свайпы.</p>'+
     '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
-    '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 10 свайпов и поставил 4 лайка (вкладка «Друзья»)</span></div>'+
+    '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 7 свайпов и поставил 3 лайка (вкладка «Друзья»)</span></div>'+
     '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+30</b><span>за подписку на наш канал</span></div>':'')+
-    '<p>Каждые 4 часа даётся 20 бесплатных свайпов (лайк, дизлайк или суперлайк). Они не накапливаются: через 4 часа снова 20. Дополнительные можно купить за вайбы.</p>'+
+    '<p>Каждые 4 часа даётся 20 бесплатных свайпов (лайк, дизлайк, суперлайк или пропуск). Они не накапливаются: через 4 часа снова 20. Дополнительные можно купить за вайбы.</p>'+
     (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Понятно</button>')
 }
 
@@ -702,6 +703,7 @@ var PACKS=[[10,20],[20,35],[50,85]];
 function fmtWait(s){s=Math.max(0,Math.round(s));if(s<60)return 'меньше минуты';var h=Math.floor(s/3600),m=Math.ceil((s%3600)/60);if(m===60){h++;m=0}return (h?h+' ч ':'')+(m?m+' мин':'')}
 function unameWait(p){return Math.max(0,(p.uname_wait||0)-Math.floor((Date.now()-(p._ut||Date.now()))/1000))}
 function swText(i){var s=i.swipes;if(!s)return '';return 'Свайпов: '+s.left+(s.bonus?' (купленных: '+s.bonus+')':'')+(s.free_left<=0&&s.reset_in?'. Бесплатные вернутся через '+fmtWait(s.reset_in):'')}
+function leftText(i){var ss=Math.max(0,i.need_swipes-i.done_swipes),ls=Math.max(0,i.need_likes-i.done_likes),p=[];if(ss)p.push(ss+' '+plural(ss,'свайп','свайпа','свайпов'));if(ls)p.push(ls+' '+plural(ls,'лайк','лайка','лайков'));return p.join(' и ')}
 function noSwipes(){swipeShop(true)}
 function swipeShop(empty){
   var s=(me.info&&me.info.swipes)||{reset_in:0};
@@ -713,7 +715,7 @@ function swipeShop(empty){
 /* вкладка «Друзья» */
 function renderFriends(){
   var r=me.ref||{invited:0,active:0,earned:0,pending:0};
-  $('#friends').innerHTML='<h1>Друзья</h1><p class="sub">Приглашай друзей в KIVO. +10 вайбов за каждого придут автоматически, когда друг освоится: сделает 10 свайпов и поставит 4 лайка.</p>'+
+  $('#friends').innerHTML='<h1>Друзья</h1><p class="sub">Приглашай друзей в KIVO. +10 вайбов за каждого придут автоматически, когда друг освоится: сделает 7 свайпов и поставит 3 лайка.</p>'+
     '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.active+'</b><span>Активны</span></div><div><b>'+r.earned+'</b><span>Получено вайбов</span></div></div>'+
     (r.pending?'<p class="sub" style="margin-top:10px">Ещё осваиваются: '+r.pending+'</p>':'')+
     '<div class="lbl">Твоя ссылка</div><div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
@@ -721,7 +723,7 @@ function renderFriends(){
     '<div class="lbl">Как это работает</div>'+
     '<div class="rule"><b>1</b><span>Отправь ссылку другу</span></div>'+
     '<div class="rule"><b>2</b><span>Друг открывает бота и создаёт анкету</span></div>'+
-    '<div class="rule"><b>3</b><span>Друг делает минимум 10 свайпов (любых) и ставит минимум 4 лайка</span></div>'+
+    '<div class="rule"><b>3</b><span>Друг делает минимум 7 свайпов (любых) и ставит минимум 3 лайка</span></div>'+
     '<div class="rule"><b>+10</b><span>Вайбы сразу приходят тебе, один раз за каждого друга</span></div>'+
     '<p class="sub">Считаются только новые пользователи, у которых ещё не было анкеты. Лимита на число друзей нет.</p>';
 }
@@ -731,17 +733,18 @@ var SB=[5,10,20,25,30,35,40];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
-  var i=me.info||{},s=i.streak||0,need=i.need||15,done=i.done||0,pct=Math.min(100,Math.round(done/need*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
+  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||7,nl=i.need_likes||3,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
     '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span></div>'+
     '<div class="gift">'+(i.claimed?'✅ Награда за сегодня получена':'🎁 Награда за сегодня: +'+(i.reward||5)+' вайбов')+'</div></div></div>'+
     '<div class="lbl">Прогресс за сегодня</div><div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
-    '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'❤️ '+done+' из '+need+' '+plural(need,'лайка','лайков','лайков'))+'</div>'+
+    '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'👆 Свайпов: '+Math.min(ds,ns)+' из '+ns+' · ❤️ Лайков: '+Math.min(dl,nl)+' из '+nl)+'</div>'+
     '<div class="lbl">Награды по дням</div><div class="days">'+cells+'</div><p class="sub">С 8-го дня +40 вайбов за каждый день.</p>'+
     '<div class="lbl">Как это работает</div>'+
-    '<div class="hw"><div class="rule"><b>'+need+' ❤️</b><span>лайков за день засчитывают заход. Пропуск свайпом вверх и дизлайки не считаются</span></div>'+
+    '<div class="hw"><div class="rule"><b>'+ns+' 👆</b><span>свайпов за день: лайк, дизлайк, суперлайк или пропуск свайпом вверх</span></div>'+
+    '<div class="rule"><b>'+nl+' ❤️</b><span>из них должны быть лайками</span></div>'+
     '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
     '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>'+
     '<p class="sub" style="margin-top:12px">Свайпов осталось: '+(sw?sw.left:'–')+'</p>';
