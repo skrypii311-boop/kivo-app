@@ -464,7 +464,7 @@ function loadFeed(){
   swq.then(function(){return api('/api/feed')}).then(function(d){
     var ids={};deck.forEach(function(x){ids[x.id]=1});
     d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]){deck.push(x);ids[x.id]=1}});
-  }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock)settle(null)});
+  }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock||!deck.length)settle(null)});
 }
 function mkCard(p){var c=document.createElement('div');c.className='card';c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);return c}
 function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card')&&!s.querySelector('.card.back')){var b=mkCard(deck[1]);b.classList.add('back');b.style.opacity='0';s.insertBefore(b,s.firstChild);requestAnimationFrame(function(){requestAnimationFrame(function(){b.style.transition='opacity .25s';b.style.opacity=''})})}}
@@ -780,11 +780,11 @@ function renderStreak(){
     '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span></div>'+
     '<div class="gift">'+(i.claimed?'✅ Награда за сегодня получена':'🎁 Награда за сегодня: +'+(i.reward||5)+' вайбов')+'</div></div></div>'+
     '<div class="lbl">Прогресс за сегодня</div><div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
-    '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'👆 Свайпов: '+Math.min(ds,ns)+' из '+ns+' · ❤️ Лайков: '+Math.min(dl,nl)+' из '+nl)+'</div>'+
+    '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'👆 Свайпов: '+Math.min(ds,ns)+' из '+ns+(nl?' · ❤️ Лайков: '+Math.min(dl,nl)+' из '+nl:''))+'</div>'+
     '<div class="lbl">Награды по дням</div><div class="days">'+cells+'</div><p class="sub">С 8-го дня +40 вайбов за каждый день.</p>'+
     '<div class="lbl">Как это работает</div>'+
-    '<div class="hw"><div class="rule"><b>'+ns+' 👆</b><span>свайпов за день: лайк, дизлайк, суперлайк или пропуск свайпом вверх</span></div>'+
-    '<div class="rule"><b>'+nl+' ❤️</b><span>из них должны быть лайками</span></div>'+
+    '<div class="hw"><div class="rule"><b>'+ns+' 👆</b><span>свайпов за день, лайки не обязательны: лайк, дизлайк, суперлайк или пропуск свайпом вверх</span></div>'+
+    (nl?'<div class="rule"><b>'+nl+' ❤️</b><span>из них должны быть лайками</span></div>':'')+
     '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
     '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>'+
     '<p class="sub" style="margin-top:12px">Свайпов осталось: '+(sw?sw.left:'–')+'</p>';
