@@ -367,7 +367,7 @@ document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
 var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером","Хочу гулять","Ищу компанию","Настроен поболтать","Хочу в кино","Скучаю","Романтичное"];
 var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
 var editing=true;
-var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,prev=null,swiped={},swq=Promise.resolve(),swPend=0,feedBusy=false;
+var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,hist=[],swiped={},swq=Promise.resolve(),swPend=0,feedBusy=false;
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function vf(p){return p.verified?'<span class="vf" title="Анкета подтверждена" aria-label="Анкета подтверждена">'+ic('check',14)+'</span>':''}
@@ -493,8 +493,9 @@ function drag(c,p){
     dx=dy=0};
 }
 function askRewind(){
-  if(!prev){toast('Нет анкеты, к которой можно вернуться');return}
-  sheet('<h3>Вернуться к анкете?</h3><p>Чтобы вернуться к анкете «'+esc(prev.name)+'», заплати 25 вайбов. У тебя сейчас '+(me.vibes||0)+'.</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
+  var pv=hist[hist.length-1];
+  if(!pv){toast('Нет анкеты, к которой можно вернуться');return}
+  sheet('<h3>Вернуться к анкете?</h3><p>Чтобы вернуться к анкете «'+esc(pv.name)+'», заплати 25 вайбов. У тебя сейчас '+(me.vibes||0)+'.</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
 var OUT={like:'translateY(-125%)',pass:'translateY(-125%)',super:'translateY(-125%)',skip:'translateY(-125%)'};
 function fly(action){
@@ -518,17 +519,18 @@ function bump(action){var I=me&&me.info;if(!I)return;I.done_swipes=(I.done_swipe
   var w=I.swipes;if(w){if(w.free_left>0)w.free_left--;else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
   if(action==='super')setVibes(me.vibes-25);setInfo(I)}
 function decide(action){
-  var p=deck.shift();swiped[p.id]=1;prev=(action==='pass'||action==='skip')?p:null;bump(action);
+  var p=deck.shift();swiped[p.id]=1;if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
   var back=$('#stack .card.back');
   if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
   swPend++;
   swq=swq.then(function(){return api('/api/swipe',{target:p.id,action:action})}).then(function(r){
     swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   },function(e){
     swPend--;
+    hist=hist.filter(function(x){return x.id!==p.id});
     if(e.status===404){resync();return}
     delete swiped[p.id];deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw();
     if(e.code==='no_swipes'){resync().then(noSwipes);return}
@@ -808,7 +810,7 @@ document.addEventListener('click',function(e){
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
   else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+30 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rwgo'){var pid=prev&&prev.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];setVibes(r.vibes);setInfo(r.info);prev=null;deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){toast(e.message)})}
+  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
@@ -837,7 +839,7 @@ function load(){
 var IS_ADMIN=false;
 function resetApp(){   // смена анкеты админом: приложение перезапускается от имени выбранной анкеты
   leaveChat();clearInterval(start.iv);started=false;
-  me=null;deck=[];swiped={};pairs=[];prev=null;pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
+  me=null;deck=[];swiped={};pairs=[];hist=[];pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
   $('nav').classList.add('off');
   ['feed','chats','streak','friends'].forEach(function(id){$('#'+id).classList.remove('on')});$('#me').classList.add('on');
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab==='me')b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
