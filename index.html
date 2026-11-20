@@ -519,24 +519,40 @@ function dbl(c,x,y){
 function bump(action){var I=me&&me.info;if(!I)return;I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
   var w=I.swipes;if(w){if(w.free_left>0)w.free_left--;else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
   if(action==='super')setVibes(me.vibes-25);setInfo(I)}
-function decide(action){
-  var p=deck.shift();swiped[p.id]=1;if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
-  var back=$('#stack .card.back');
-  if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
-  swPend++;
-  var pr=api('/api/swipe',{target:p.id,action:action}).then(function(r){
+var sendQ=[];
+function sendSwipe(p,action,tries){
+  return api('/api/swipe',{target:p.id,action:action}).then(function(r){
     swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   },function(e){
+    if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
     swPend--;
     hist=hist.filter(function(x){return x.id!==p.id});
+    if(!e.status){delete swiped[p.id];resync();toast(e.message);return}   // связи нет: анкета вернётся с новой лентой, если сервер её не записал
     if(e.status===404){resync();return}
     delete swiped[p.id];deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw();
     if(e.code==='no_swipes'){resync().then(noSwipes);return}
     resync();toast(e.message)});
-  swq=Promise.all([swq,pr]).then(function(){},function(){});   // откат (rewind) ждёт все отправленные свайпы
+}
+function flushSwipes(){   // приложение сворачивают или закрывают: отправляем всё, что ещё в очереди
+  var q=sendQ;sendQ=[];
+  q.forEach(function(it){if(it.sent)return;it.sent=true;try{fetch('/api/swipe',{method:'POST',keepalive:true,headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"},body:JSON.stringify({target:it.p.id,action:it.action})}).catch(function(){})}catch(e){}});
+}
+document.addEventListener('visibilitychange',function(){if(document.hidden)flushSwipes();else if(me)resync()});
+window.addEventListener('pagehide',flushSwipes);
+function decide(action){
+  var p=deck.shift();swiped[p.id]=1;if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
+  var back=$('#stack .card.back');
+  if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
+  swPend++;
+  var it={p:p,action:action,sent:false};sendQ.push(it);
+  swq=swq.then(function(){            // свайпы уходят по очереди: сервер и пул соединений маленькие
+    if(it.sent){swPend--;return}       // уже отправлен при сворачивании приложения
+    it.sent=true;sendQ=sendQ.filter(function(x){return x!==it});
+    return sendSwipe(p,action,0)
+  }).then(function(){},function(){});
   if(deck.length<3)loadFeed();
 }
 
