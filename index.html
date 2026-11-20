@@ -377,11 +377,12 @@ function sheet(h){$('#sheet').innerHTML=h;$('#shade').classList.add('on');$('#sh
 function closeSheet(){$('#shade').classList.remove('on');$('#sheet').classList.remove('on')}
 $('#shade').onclick=closeSheet;
 function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b)}
-  return fetch(path,o).then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})})}
+  var ac=window.AbortController?new AbortController():null,tm=null;if(ac){o.signal=ac.signal;tm=setTimeout(function(){ac.abort()},25000)}
+  return fetch(path,o).then(function(r){clearTimeout(tm);return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})},function(x){clearTimeout(tm);throw new Error("Нет связи с сервером, попробуй ещё раз")})}
 function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
 
 /* вкладки */
-function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;me.uname_wait=d.uname_wait;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);if(cb)cb()}).catch(function(){})}
+function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;me.uname_wait=d.uname_wait;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);if(d.streak_claimed)toast('День '+d.streak_claimed.day+' подряд: +'+d.streak_claimed.bonus+' вайбов');if(cb)cb()}).catch(function(){})}
 function tab(t){
   ['feed','chats','streak','friends','me'].forEach(function(id){$('#'+id).classList.toggle('on',id===t)});
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
@@ -461,7 +462,7 @@ function cardHTML(p,own){
 function resync(){return api('/api/me').then(function(d){setVibes(d.vibes);setInfo(d.info)}).catch(function(){})}
 function loadFeed(){
   if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
-  swq.then(function(){return api('/api/feed')}).then(function(d){
+  api('/api/feed').then(function(d){
     var ids={};deck.forEach(function(x){ids[x.id]=1});
     d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]){deck.push(x);ids[x.id]=1}});
   }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock||!deck.length)settle(null)});
@@ -773,7 +774,7 @@ var SB=[5,10,20,25,30,35,40];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
-  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||7,nl=i.need_likes||3,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
+  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||7,nl=i.need_likes==null?3:i.need_likes,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
