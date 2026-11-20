@@ -306,8 +306,8 @@ nav button{position:relative}
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
-        <div class="col"><button class="rb sm" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 25</span></div>
-        <div class="col"><button class="rb main" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button><span class="cap">Нравится</span></div>
+        <div class="col"><button class="rb sm main" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 25</span></div>
+        <div class="col"><button class="rb" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button><span class="cap">Нравится</span></div>
       </div>
     </section>
     <section id="chats"><h1>Пары</h1><div id="list"></div></section>
@@ -366,7 +366,7 @@ document.getElementById('ico-bolt').innerHTML=ic('bolt',15);
 var MOODS=["Не сплю","В наушниках","Хочу кофе","Свободен вечером","Хочу гулять","Ищу компанию","Настроен поболтать","Хочу в кино","Скучаю","Романтичное"];
 var INTS=["Музыка","Кино","Путешествия","Спорт","Игры","Арт","Книги","Кухня","Фото","Танцы","Походы","Технологии"];
 var editing=true;
-var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,prev=null;
+var me=null,deck=[],pairs=[],cur=null,poll=null,repId=null,nmsg=-1,lock=false,prev=null,swiped={},swq=Promise.resolve(),swPend=0,feedBusy=false;
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function vf(p){return p.verified?'<span class="vf" title="Анкета подтверждена" aria-label="Анкета подтверждена">'+ic('check',14)+'</span>':''}
@@ -457,15 +457,22 @@ function cardHTML(p,own){
   '<div class="meta">'+loc+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
   '<div class="chips">'+p.interests.map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div></div>';
 }
-function loadFeed(){api('/api/feed').then(function(d){var n=deck.length,ids={};deck.forEach(function(x){ids[x.id]=1});d.items.forEach(function(x){if(!ids[x.id]){deck.push(x);ids[x.id]=1}});if(deck.length!==n||!n)draw()}).catch(function(e){toast(e.message)})}
+function resync(){return api('/api/me').then(function(d){setVibes(d.vibes);setInfo(d.info)}).catch(function(){})}
+function loadFeed(){
+  if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
+  swq.then(function(){return api('/api/feed')}).then(function(d){
+    var ids={};deck.forEach(function(x){ids[x.id]=1});
+    d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]){deck.push(x);ids[x.id]=1}});
+  }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock)settle(null)});
+}
+function mkCard(p){var c=document.createElement('div');c.className='card';c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);return c}
+function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card')&&!s.querySelector('.card.back')){var b=mkCard(deck[1]);b.classList.add('back');s.insertBefore(b,s.firstChild)}}
+function settle(c){if(c)c.remove();var s=$('#stack');if(!s.querySelector('.card')||!deck.length){draw();return}ensureBack()}
 function draw(){
   var s=$('#stack');s.innerHTML='';
-  if(!deck.length){s.innerHTML='<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже: новые люди появляются каждый день.</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
+  if(!deck.length){s.innerHTML=feedBusy?'<div class="empty"><h3>Ищем анкеты…</h3></div>':'<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже: новые люди появляются каждый день.</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
   $('.acts').style.display='';deck.slice(0,3).forEach(preload);
-  deck.slice(0,2).reverse().forEach(function(p,i,a){
-    var c=document.createElement('div');c.className='card'+(i===0&&a.length>1?' back':'');c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);s.appendChild(c);
-    if(i===a.length-1)drag(c,p);
-  });
+  var f=mkCard(deck[0]);s.appendChild(f);drag(f,deck[0]);ensureBack();
 }
 function drag(c,p){
   var x0=0,y0=0,dx=0,dy=0,on=false,mode='',t0=0,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n'),ps=photoSwipe(c,p),many=p.photos&&p.photos.length>1;
@@ -488,36 +495,44 @@ function askRewind(){
   if(!prev){toast('Нет анкеты, к которой можно вернуться');return}
   sheet('<h3>Вернуться к анкете?</h3><p>Чтобы вернуться к анкете «'+esc(prev.name)+'», заплати 25 вайбов. У тебя сейчас '+(me.vibes||0)+'.</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
+var OUT={like:'translateX(135%) rotate(14deg)',pass:'translateX(-135%) rotate(-14deg)',super:'translateY(-125%) scale(1.05)',skip:'translateY(-125%)'};
 function fly(action){
-  var c=$('#stack .card:last-child');if(!c||!deck.length||lock)return;
+  var c=$('#stack .card:last-child');if(!c||!deck.length||lock||!me)return;
   var I=me.info||{};
-  if(I.swipes&&I.swipes.left<=0){noSwipes();return}
+  if(I.swipes&&I.swipes.left<=0){if(action==='skip')draw();noSwipes();return}
   if(action==='super'&&me.vibes<25){deny('Не хватает вайбов: суперлайк стоит 25');return}
-  c.style.transition='transform .25s,opacity .25s';c.style.transform=action==='pass'?'translateY(-620px)':'scale(1.06)';c.style.opacity=0;hap();
-  setTimeout(function(){decide(action)},230);
+  lock=true;hideHint();hap();c.onpointerdown=null;c.style.pointerEvents='none';
+  c.style.transition='transform .28s cubic-bezier(.3,0,.7,.4),opacity .28s ease-in';c.style.transform=OUT[action];c.style.opacity=0;
+  decide(action);
+  setTimeout(function(){lock=false;settle(c)},290);
 }
-function skip(){
-  var c=$('#stack .card:last-child');if(!c||lock)return;
-  var I=me.info||{};
-  if(I.swipes&&I.swipes.left<=0){draw();noSwipes();return}
-  hideHint();lock=true;c.style.transition='transform .25s,opacity .25s';c.style.transform='translateY(-620px)';c.style.opacity=0;hap();
-  setTimeout(function(){lock=false;decide('skip')},230);
-}
+function skip(){fly('skip')}
 function dbl(c,x,y){
   if(lock||!me)return;var I=me.info||{};
   if(I.swipes&&I.swipes.left<=0){noSwipes();return}
   lock=true;burst(c,x,y);hap('medium');
   setTimeout(function(){lock=false;fly('like')},520);
 }
+function bump(action){var I=me&&me.info;if(!I)return;I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
+  var w=I.swipes;if(w){if(w.free_left>0)w.free_left--;else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
+  if(action==='super')setVibes(me.vibes-25);setInfo(I)}
 function decide(action){
-  hideHint();var p=deck.shift();prev=(action==='pass'||action==='skip')?p:null;draw();
-  api('/api/swipe',{target:p.id,action:action}).then(function(r){
-    setVibes(r.vibes);setInfo(r.info);if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
+  var p=deck.shift();swiped[p.id]=1;prev=(action==='pass'||action==='skip')?p:null;bump(action);
+  var back=$('#stack .card.back');
+  if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
+  swPend++;
+  swq=swq.then(function(){return api('/api/swipe',{target:p.id,action:action})}).then(function(r){
+    swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
+    if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
-  }).catch(function(e){if(e.status===429||e.status===402){deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw()}
-    if(e.code==='no_swipes'){api('/api/me').then(function(d){setInfo(d.info)}).catch(function(){}).then(noSwipes);return}
-    toast(e.message)});
+  },function(e){
+    swPend--;
+    if(e.status===404){resync();return}
+    delete swiped[p.id];deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw();
+    if(e.code==='no_swipes'){resync().then(noSwipes);return}
+    resync();toast(e.message)});
+  if(deck.length<3)loadFeed();
 }
 
 /* пары и чат */
@@ -792,7 +807,7 @@ document.addEventListener('click',function(e){
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
   else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+30 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rwgo'){var pid=prev&&prev.id;closeSheet();if(!pid)return;api('/api/rewind',{target:pid}).then(function(r){setVibes(r.vibes);setInfo(r.info);prev=null;deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){toast(e.message)})}
+  else if(a==='rwgo'){var pid=prev&&prev.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];setVibes(r.vibes);setInfo(r.info);prev=null;deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
@@ -821,7 +836,7 @@ function load(){
 var IS_ADMIN=false;
 function resetApp(){   // смена анкеты админом: приложение перезапускается от имени выбранной анкеты
   leaveChat();clearInterval(start.iv);started=false;
-  me=null;deck=[];pairs=[];prev=null;pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
+  me=null;deck=[];swiped={};pairs=[];prev=null;pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
   $('nav').classList.add('off');
   ['feed','chats','streak','friends'].forEach(function(id){$('#'+id).classList.remove('on')});$('#me').classList.add('on');
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab==='me')b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
