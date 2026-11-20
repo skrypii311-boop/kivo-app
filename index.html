@@ -464,7 +464,7 @@ function loadFeed(){
   if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
   api('/api/feed').then(function(d){
     var ids={};deck.forEach(function(x){ids[x.id]=1});
-    d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]){deck.push(x);ids[x.id]=1}});
+    d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]&&!REC[x.id]){deck.push(x);ids[x.id]=1}});
   }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock||!deck.length)settle(null)});
 }
 function mkCard(p){var c=document.createElement('div');c.className='card';c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);return c}
@@ -501,7 +501,7 @@ function askRewind(){
 var OUT={like:'translateY(-125%)',pass:'translateY(-125%)',super:'translateY(-125%)',skip:'translateY(-125%)'};
 function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length||lock||!me)return;
-  var I=me.info||{};
+  var I=me.info||{};normSw(I);
   if(I.swipes&&I.swipes.left<=0){if(action==='skip')draw();noSwipes();return}
   if(action==='super'&&me.vibes<25){deny('Не хватает вайбов: суперлайк стоит 25');return}
   lock=true;hideHint();hap();c.onpointerdown=null;c.style.pointerEvents='none';
@@ -511,18 +511,18 @@ function fly(action){
 }
 function skip(){fly('skip')}
 function dbl(c,x,y){
-  if(lock||!me)return;var I=me.info||{};
+  if(lock||!me)return;var I=me.info||{};normSw(I);
   if(I.swipes&&I.swipes.left<=0){noSwipes();return}
   lock=true;burst(c,x,y);hap('medium');
   setTimeout(function(){lock=false;fly('like')},520);
 }
 function bump(action){var I=me&&me.info;if(!I)return;I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
-  var w=I.swipes;if(w){if(w.free_left>0)w.free_left--;else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
+  var w=I.swipes;if(w){normSw(I);if(w.free_left>0){if(!w.reset_in){w.reset_in=14400;w._at=Date.now()}w.free_left--}else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
   if(action==='super')setVibes(me.vibes-25);setInfo(I)}
 var sendQ=[];
 function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
-    swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
+    pqDel(p.id);swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
@@ -530,7 +530,8 @@ function sendSwipe(p,action,tries){
     if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
     swPend--;
     hist=hist.filter(function(x){return x.id!==p.id});
-    if(!e.status){delete swiped[p.id];resync();toast(e.message);return}   // связи нет: анкета вернётся с новой лентой, если сервер её не записал
+    if(!e.status){delete swiped[p.id];resync();toast(e.message);return}   // связь оборвалась: свайп остаётся в очереди и уйдёт при следующем открытии
+    pqDel(p.id);recDel(p.id);   // связи нет: анкета вернётся с новой лентой, если сервер её не записал
     if(e.status===404){resync();return}
     delete swiped[p.id];deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw();
     if(e.code==='no_swipes'){resync().then(noSwipes);return}
@@ -543,7 +544,7 @@ function flushSwipes(){   // приложение сворачивают или 
 document.addEventListener('visibilitychange',function(){if(document.hidden)flushSwipes();else if(me)resync()});
 window.addEventListener('pagehide',flushSwipes);
 function decide(action){
-  var p=deck.shift();swiped[p.id]=1;if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
+  var p=deck.shift();swiped[p.id]=1;recAdd(p.id);pqAdd(p.id,action);if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
   var back=$('#stack .card.back');
   if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
   swPend++;
@@ -576,8 +577,22 @@ var ICE=["Начни с простого вопроса: какой трек у 
 var MCACHE={};   // последняя загруженная переписка по каждому собеседнику: чат открывается сразу с сообщениями
 var MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 var SEEN={},KNOWN=null,pairsOnce=false,pend=[],nsig=null,msgItems=[],UID=0,started=false,uT=null;
+/* недавние свайпы и очередь отправки живут в localStorage: после закрытия и мгновенного открытия анкеты не возвращаются */
+var REC={};
+function recLoad(){REC=lsGet('kv_rec_'+UID,{});var t=Date.now(),ch=false;for(var k in REC)if(t-REC[k]>1800000){delete REC[k];ch=true}if(ch)recSave()}
+function recSave(){try{localStorage.setItem('kv_rec_'+UID,JSON.stringify(REC))}catch(e){}}
+function recAdd(id){REC[id]=Date.now();recSave()}
+function recDel(id){if(REC[id]){delete REC[id];recSave()}}
+function pqGet(){return lsGet('kv_pq_'+UID,[])}
+function pqSet(a){try{localStorage.setItem('kv_pq_'+UID,JSON.stringify(a))}catch(e){}}
+function pqAdd(id,action){var a=pqGet().filter(function(x){return x.id!==id});a.push({id:id,action:action});pqSet(a)}
+function pqDel(id){pqSet(pqGet().filter(function(x){return x.id!==id}))}
+function replayQueue(){   // досылаем свайпы, которые не успели уйти в прошлый раз
+  var a=pqGet();if(!a.length)return Promise.resolve();
+  return a.reduce(function(pr,it){return pr.then(function(){return api('/api/swipe',{target:it.id,action:it.action}).then(function(){pqDel(it.id)},function(e){if(e.status){pqDel(it.id);if(e.code==='no_swipes')recDel(it.id)}})})},Promise.resolve());
+}
 function lsGet(k,def){try{var v=JSON.parse(localStorage.getItem(k));return v==null?def:v}catch(e){return def}}
-function loadLocal(uid,persona){UID=uid||0;SEEN=lsGet('kv_seen_'+UID,persona?{}:lsGet('kv_seen',{}));KNOWN=lsGet('kv_known_'+UID,persona?null:lsGet('kv_known',null))}
+function loadLocal(uid,persona){UID=uid||0;recLoad();SEEN=lsGet('kv_seen_'+UID,persona?{}:lsGet('kv_seen',{}));KNOWN=lsGet('kv_known_'+UID,persona?null:lsGet('kv_known',null))}
 function saveSeen(){try{localStorage.setItem('kv_seen_'+UID,JSON.stringify(SEEN))}catch(e){}}
 function saveKnown(){try{localStorage.setItem('kv_known_'+UID,JSON.stringify(KNOWN))}catch(e){}}
 function hideHint(){var h=$('#hint');if(h)h.style.display='none';try{localStorage.setItem('kv_hint','1')}catch(e){}}
@@ -716,7 +731,7 @@ function ownSwipe(pc,pp){pp=pp||me;
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
-function setInfo(i){if(!i||!me)return;me.info=i;$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+leftText(i)+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
+function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+leftText(i)+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
@@ -760,11 +775,15 @@ function renderPeer(d){
 var PACKS=[[10,20],[20,35],[50,85]];
 function fmtWait(s){s=Math.max(0,Math.round(s));if(s<60)return 'меньше минуты';var h=Math.floor(s/3600),m=Math.ceil((s%3600)/60);if(m===60){h++;m=0}return (h?h+' ч ':'')+(m?m+' мин':'')}
 function unameWait(p){return Math.max(0,(p.uname_wait||0)-Math.floor((Date.now()-(p._ut||Date.now()))/1000))}
-function swText(i){var s=i.swipes;if(!s)return '';return 'Свайпов: '+s.left+(s.bonus?' (купленных: '+s.bonus+')':'')+(s.free_left<=0&&s.reset_in?'. Бесплатные вернутся через '+fmtWait(s.reset_in):'')}
+function swWait(s){return s&&s.reset_in?Math.max(0,s.reset_in-Math.floor((Date.now()-(s._at||Date.now()))/1000)):0}
+function normSw(i){var s=i&&i.swipes;if(!s)return false;   // окно бесплатных свайпов закончилось: локально сбрасываем счётчик
+  if(s.reset_in&&swWait(s)<=0){s.free_left=s.free_max||20;s.reset_in=0;s.left=s.free_left+(s.bonus||0);return true}return false}
+function swText(i){var s=i.swipes;if(!s)return '';var w=swWait(s);return 'Свайпов: '+s.left+(s.bonus?' (купленных: '+s.bonus+')':'')+(s.free_left<=0&&w?'. Бесплатные вернутся через '+fmtWait(w):'')}
+setInterval(function(){if(!me||!me.info||document.hidden)return;var ex=normSw(me.info);setInfo(me.info);if(ex)resync()},15000);
 function leftText(i){var ss=Math.max(0,i.need_swipes-i.done_swipes),ls=Math.max(0,i.need_likes-i.done_likes),p=[];if(ss)p.push(ss+' '+plural(ss,'свайп','свайпа','свайпов'));if(ls)p.push(ls+' '+plural(ls,'лайк','лайка','лайков'));return p.join(' и ')}
 function noSwipes(){swipeShop(true)}
 function swipeShop(empty){
-  var s=(me.info&&me.info.swipes)||{reset_in:0};
+  var s=(me.info&&me.info.swipes)||{reset_in:0};s.reset_in=swWait(s);
   sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty?'Бесплатные 20 свайпов выдаются каждые 4 часа'+(s.reset_in?': следующие через '+fmtWait(s.reset_in):'')+'. Можно подождать или купить дополнительные свайпы, они не сгорают. ':'Купленные свайпы не сгорают и тратятся после бесплатных. ')+'У тебя '+(me.vibes||0)+' вайбов.</p>'+
     PACKS.map(function(p){return '<button class="btn" data-act="buy" data-n="'+p[0]+'">'+p[0]+' свайпов · '+p[1]+' вайбов</button>'}).join('')+
     '<button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
@@ -828,7 +847,7 @@ document.addEventListener('click',function(e){
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
   else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+30 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
+  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
@@ -840,7 +859,7 @@ document.addEventListener('click',function(e){
 /* запуск */
 function start(){
   if(started)return;started=true;
-  $('nav').classList.remove('off');tab('feed');loadFeed();loadPairs();
+  $('nav').classList.remove('off');tab('feed');replayQueue().then(function(){loadFeed();loadPairs()});
   clearInterval(start.iv);start.iv=setInterval(function(){if(!document.hidden&&!cur&&me)loadPairs()},12000);
 }
 function load(){
@@ -857,7 +876,7 @@ function load(){
 var IS_ADMIN=false;
 function resetApp(){   // смена анкеты админом: приложение перезапускается от имени выбранной анкеты
   leaveChat();clearInterval(start.iv);started=false;
-  me=null;deck=[];swiped={};pairs=[];hist=[];pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
+  me=null;deck=[];swiped={};REC={};pairs=[];hist=[];pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
   $('nav').classList.add('off');
   ['feed','chats','streak','friends'].forEach(function(id){$('#'+id).classList.remove('on')});$('#me').classList.add('on');
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab==='me')b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
