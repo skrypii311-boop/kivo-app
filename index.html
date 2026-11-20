@@ -459,7 +459,7 @@ function cardHTML(p,own){
   '<div class="meta">'+loc+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
   '<div class="chips">'+p.interests.map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div></div>';
 }
-function resync(){return api('/api/me').then(function(d){setVibes(d.vibes);setInfo(d.info)}).catch(function(){})}
+function resync(){return api('/api/me').then(function(d){var I=d.info,sp=0;pendA.forEach(function(x){bumpInfo(I,x.action);if(x.action==='super')sp+=25});setVibes(d.vibes-sp);setInfo(I)}).catch(function(){})}
 function loadFeed(){
   if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
   api('/api/feed').then(function(d){
@@ -732,7 +732,7 @@ function ownSwipe(pc,pp){pp=pp||me;
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
-function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':(leftText(i)?'До награды за вход: ещё '+leftText(i)+'. ':'Норма на сегодня выполнена, награда сейчас придёт. '))+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
+function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);var bn=(i.swipes&&i.swipes.bonus)||0;$('#prog').textContent=bn>0?'Куплено свайпов: '+bn:'';if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
@@ -779,9 +779,7 @@ function unameWait(p){return Math.max(0,(p.uname_wait||0)-Math.floor((Date.now()
 function swWait(s){return s&&s.reset_in?Math.max(0,s.reset_in-Math.floor((Date.now()-(s._at||Date.now()))/1000)):0}
 function normSw(i){var s=i&&i.swipes;if(!s)return false;   // окно бесплатных свайпов закончилось: локально сбрасываем счётчик
   if(s.reset_in&&swWait(s)<=0){s.free_left=s.free_max||20;s.reset_in=0;s.left=s.free_left+(s.bonus||0);return true}return false}
-function swText(i){var s=i.swipes;if(!s)return '';var w=swWait(s);return 'Свайпов: '+s.left+(s.bonus?' (купленных: '+s.bonus+')':'')+(s.free_left<=0&&w?'. Бесплатные вернутся через '+fmtWait(w):'')}
 setInterval(function(){if(!me||!me.info||document.hidden)return;var ex=normSw(me.info);setInfo(me.info);if(ex)resync()},15000);
-function leftText(i){var ss=Math.max(0,i.need_swipes-i.done_swipes),ls=Math.max(0,i.need_likes-i.done_likes),p=[];if(ss)p.push(ss+' '+plural(ss,'свайп','свайпа','свайпов'));if(ls)p.push(ls+' '+plural(ls,'лайк','лайка','лайков'));return p.join(' и ')}
 function noSwipes(){swipeShop(true)}
 function swipeShop(empty){
   var s=(me.info&&me.info.swipes)||{reset_in:0};s.reset_in=swWait(s);
@@ -811,7 +809,7 @@ var SB=[5,10,20,25,30,35,40];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
-  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||7,nl=i.need_likes==null?3:i.need_likes,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
+  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||15,nl=i.need_likes==null?3:i.need_likes,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
@@ -824,8 +822,7 @@ function renderStreak(){
     '<div class="hw"><div class="rule"><b>'+ns+' 👆</b><span>свайпов за день, лайки не обязательны: лайк, дизлайк, суперлайк или пропуск свайпом вверх</span></div>'+
     (nl?'<div class="rule"><b>'+nl+' ❤️</b><span>из них должны быть лайками</span></div>':'')+
     '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
-    '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>'+
-    '<p class="sub" style="margin-top:12px">Свайпов осталось: '+(sw?sw.left:'–')+'</p>';
+    '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>';
 }
 
 /* действия */
@@ -860,7 +857,7 @@ document.addEventListener('click',function(e){
 /* запуск */
 function start(){
   if(started)return;started=true;
-  $('nav').classList.remove('off');tab('feed');replayQueue().then(function(){loadFeed();loadPairs()});
+  $('nav').classList.remove('off');tab('feed');replayQueue().then(function(){resync();loadFeed();loadPairs()});
   clearInterval(start.iv);start.iv=setInterval(function(){if(!document.hidden&&!cur&&me)loadPairs()},12000);
 }
 function load(){
