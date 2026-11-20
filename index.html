@@ -295,6 +295,23 @@ nav button{position:relative}
 #peerbody>*{flex-shrink:0}
 .peerbtn{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
 .row .cnt{flex:none;font-size:12px;color:var(--mu);align-self:flex-start;margin-top:4px}
+/* история вайбов */
+.vh{margin-top:16px}
+.vhb{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:14px;background:var(--sf);border:1px solid var(--ln);text-align:left;box-shadow:var(--sh)}
+.vhb .t{flex:1}
+.vhb .bal{font-weight:700;color:var(--ac)}
+.vhb .chev{font-size:20px;line-height:1;color:var(--mu);transition:transform .2s}
+.vh.open .chev{transform:rotate(90deg)}
+.vhl{display:none;margin-top:8px;background:var(--sf);border:1px solid var(--ln);border-radius:14px;overflow:hidden;box-shadow:var(--sh)}
+.vh.open .vhl{display:block}
+.vhr{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--ln)}
+.vhr:first-child{border-top:0}
+.vhr div{flex:1;min-width:0}
+.vhr small{display:block;color:var(--mu);font-size:12px}
+.vhr b{flex:none;font-weight:700}
+.vhr b.p{color:#1F9D55}.vhr b.m{color:#D64545}
+.vhm{width:100%;padding:12px;color:var(--ac);font-weight:500;border-top:1px solid var(--ln)}
+.vhe{padding:16px;text-align:center;color:var(--mu);font-size:14px}
 </style>
 </head>
 <body>
@@ -322,6 +339,7 @@ nav button{position:relative}
         <div class="stats" id="stats" style="display:none"></div>
         <div class="ok" id="crow" style="display:none"></div>
         <div class="ok" id="vrow" style="display:none"></div>
+        <div class="vh" id="vh"><button class="vhb" data-act="vhist" aria-expanded="false"><span class="t">История вайбов</span><span class="bal" id="vhbal"></span><span class="chev">›</span></button><div class="vhl" id="vhl"></div></div>
       </div>
       <div id="medit">
         <div class="ph"><h1 id="meh">Создай анкету</h1><button class="edb" id="ecancel" data-act="editcancel" style="display:none">Отмена</button></div>
@@ -379,7 +397,7 @@ $('#shade').onclick=closeSheet;
 function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b);o.keepalive=true}
   var ac=window.AbortController?new AbortController():null,tm=null;if(ac){o.signal=ac.signal;tm=setTimeout(function(){ac.abort()},25000)}
   return fetch(path,o).then(function(r){clearTimeout(tm);return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})},function(x){clearTimeout(tm);throw new Error("Нет связи с сервером, попробуй ещё раз")})}
-function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
+function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v;var b=$('#vhbal');if(b)b.textContent=v}
 
 /* вкладки */
 function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;me.uname_wait=d.uname_wait;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);if(d.streak_claimed)toast('День '+d.streak_claimed.day+' подряд: +'+d.streak_claimed.bonus+' вайбов');if(cb)cb()}).catch(function(){})}
@@ -388,13 +406,25 @@ function tab(t){
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(t==='chats')loadPairs();
   if(!me)return;
-  if(t==='me'){setEdit(false);refreshMe(function(){renderStats();if(!editing)renderProfile()})}
+  if(t==='me'){setEdit(false);vhRefresh();refreshMe(function(){renderStats();if(!editing)renderProfile()})}
   if(t==='streak'){renderStreak();refreshMe(renderStreak)}
   if(t==='friends'){renderFriends();refreshMe(renderFriends)}
 }
 document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){leaveChat();tab(b.dataset.tab)}});
 
 /* профиль: просмотр и правка */
+var VH={items:[],more:false,loaded:false,busy:false};
+var VR={start:'Стартовый баланс',signup:'Подарок за создание анкеты',verify:'Подтверждение анкеты',channel:'Подписка на канал',ref:'Друг освоился в KIVO',super:'Суперлайк',rewind:'Возврат к анкете',admin:'Начисление от администрации'};
+function vhText(r){if(r.reason==='streak')return 'Серия входов'+(r.note?', день '+esc(r.note):'');if(r.reason==='swipes')return 'Покупка свайпов'+(r.note?': '+esc(r.note):'');return VR[r.reason]||'Операция'}
+function vhDate(ts){var d=new Date(ts*1000),n=new Date(),t=function(x){return (x<10?'0':'')+x},hm=t(d.getHours())+':'+t(d.getMinutes()),y=new Date(n);y.setDate(n.getDate()-1);
+  if(d.toDateString()===n.toDateString())return 'Сегодня, '+hm;if(d.toDateString()===y.toDateString())return 'Вчера, '+hm;return t(d.getDate())+'.'+t(d.getMonth()+1)+'.'+d.getFullYear()+', '+hm}
+function vhRender(){var l=$('#vhl');if(!l)return;
+  if(!VH.items.length){l.innerHTML='<div class="vhe">'+(VH.loaded?'Пока нет операций':'Загрузка…')+'</div>';return}
+  l.innerHTML=VH.items.map(function(r){var p=r.delta>0;return '<div class="vhr"><div>'+vhText(r)+'<small>'+vhDate(r.ts)+'</small></div><b class="'+(p?'p':'m')+'">'+(p?'+':'−')+Math.abs(r.delta)+'</b></div>'}).join('')+(VH.more?'<button class="vhm" data-act="vhmore">Показать ещё</button>':'')}
+function vhLoad(reset){if(VH.busy)return;VH.busy=true;var q=(!reset&&VH.items.length)?'?before='+VH.items[VH.items.length-1].id:'';
+  api('/api/vibes/history'+q).then(function(d){VH.items=reset?d.items:VH.items.concat(d.items);VH.more=d.more;VH.loaded=true}).catch(function(e){toast(e.message)}).then(function(){VH.busy=false;vhRender()})}
+function vhToggle(){var b=$('#vh'),o=!b.classList.contains('open');b.classList.toggle('open',o);b.querySelector('.vhb').setAttribute('aria-expanded',String(o));if(o){vhRender();vhLoad(true)}}
+function vhRefresh(){if($('#vh').classList.contains('open'))vhLoad(true)}
 function setEdit(on){
   editing=on;$('#medit').style.display=on?'':'none';$('#mev').style.display=on?'none':'';
   if(on){fillForm(me||{});$('#meh').textContent=me?'Редактирование':'Создай анкету';$('#ecancel').style.display=(me&&me.username&&me.gender&&me.looking)?'':'none';$('#err').textContent=''}
@@ -837,6 +867,8 @@ document.addEventListener('click',function(e){
   else if(a==='open')openChat(+t.dataset.id,t.dataset.n);
   else if(a==='back'){leaveChat();loadPairs()}
   else if(a==='vibeinfo')openVibes();
+  else if(a==='vhist')vhToggle();
+  else if(a==='vhmore')vhLoad(false);
   else if(a==='shop')swipeShop(false);
   else if(a==='peer')openPeer(+t.dataset.id);
   else if(a==='peerclose')closePeer();
@@ -850,7 +882,7 @@ document.addEventListener('click',function(e){
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
   else if(a==='rep'||a==='blk'){var id=repId;closeSheet();api('/api/report',{target:id,report:a==='rep',reason:t.dataset.r}).catch(function(){});deck=deck.filter(function(x){return x.id!==id});draw();if(cur&&cur.id===id){leaveChat();loadPairs()}toast('Готово, аккаунт скрыт')}
-  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3>'+(me.example?'<video src="/verify.mp4" controls playsinline preload="metadata" style="display:block;width:200px;height:200px;object-fit:cover;border-radius:50%;margin:0 auto 12px;background:#000"></video>':'')+'<p>Бот пришлёт пример и покажет один случайный жест из эмодзи, например 👍, 🤘 или ☝️. Запиши кружок (круглое видео до 30 секунд) и повтори этот жест. Кружок увидит только модератор. После проверки появится значок и +50 вайбов (один раз).</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>');
+  else if(a==='verify'){var ex=me.examples||[],n=ex.length,vs='',w=n>2?120:n>1?136:200;ex.forEach(function(g,i){vs+='<div style="flex:none;text-align:center;scroll-snap-align:center"><video src="/verify/'+i+'.mp4" controls playsinline preload="metadata" style="display:block;width:'+w+'px;height:'+w+'px;object-fit:cover;border-radius:50%;background:#000"></video><div style="font-size:24px;margin-top:6px" title="'+esc(g.d)+'">'+g.e+'</div></div>'});sheet('<h3>Подтверждение анкеты</h3>'+(n?'<div style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;justify-content:center;justify-content:safe center;padding:2px 0 8px">'+vs+'</div>':'')+'<p>'+(n?'Бот выдаст один из этих жестов и пришлёт кружок-пример именно с ним.':'Бот покажет один случайный жест, например 👍 или ✌️.')+' Запиши кружок (круглое видео до 30 секунд) и повтори этот жест. Кружок увидит только модератор. После проверки появится значок и +50 вайбов (один раз).</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>')}
   else if(a==='vgo'){closeSheet();var u='https://t.me/'+me.bot+'?start=verify';try{TG.openTelegramLink(u)}catch(e){window.open(u)}setTimeout(function(){try{TG.close()}catch(e){}},400)}
 });
 
@@ -874,7 +906,7 @@ function load(){
 var IS_ADMIN=false;
 function resetApp(){   // смена анкеты админом: приложение перезапускается от имени выбранной анкеты
   leaveChat();clearInterval(start.iv);started=false;
-  me=null;deck=[];swiped={};REC={};pairs=[];hist=[];pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
+  me=null;VH={items:[],more:false,loaded:false,busy:false};$('#vh').classList.remove('open');deck=[];swiped={};REC={};pairs=[];hist=[];pairsOnce=false;myPhotos=[];KNOWN=null;SEEN={};
   $('nav').classList.add('off');
   ['feed','chats','streak','friends'].forEach(function(id){$('#'+id).classList.remove('on')});$('#me').classList.add('on');
   document.querySelectorAll('nav button').forEach(function(b){if(b.dataset.tab==='me')b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
