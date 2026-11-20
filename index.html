@@ -524,7 +524,7 @@ function decide(action){
   var back=$('#stack .card.back');
   if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
   swPend++;
-  swq=swq.then(function(){return api('/api/swipe',{target:p.id,action:action})}).then(function(r){
+  var pr=api('/api/swipe',{target:p.id,action:action}).then(function(r){
     swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
@@ -536,6 +536,7 @@ function decide(action){
     delete swiped[p.id];deck=deck.filter(function(x){return x.id!==p.id});deck.unshift(p);draw();
     if(e.code==='no_swipes'){resync().then(noSwipes);return}
     resync();toast(e.message)});
+  swq=Promise.all([swq,pr]).then(function(){},function(){});   // откат (rewind) ждёт все отправленные свайпы
   if(deck.length<3)loadFeed();
 }
 
