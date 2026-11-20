@@ -376,7 +376,7 @@ function toast(t){var e=$('#toast');e.textContent=t;e.classList.add('on');clearT
 function sheet(h){$('#sheet').innerHTML=h;$('#shade').classList.add('on');$('#sheet').classList.add('on')}
 function closeSheet(){$('#shade').classList.remove('on');$('#sheet').classList.remove('on')}
 $('#shade').onclick=closeSheet;
-function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b)}
+function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b);o.keepalive=true}
   var ac=window.AbortController?new AbortController():null,tm=null;if(ac){o.signal=ac.signal;tm=setTimeout(function(){ac.abort()},25000)}
   return fetch(path,o).then(function(r){clearTimeout(tm);return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})},function(x){clearTimeout(tm);throw new Error("Нет связи с сервером, попробуй ещё раз")})}
 function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v}
