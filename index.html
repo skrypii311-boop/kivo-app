@@ -468,7 +468,7 @@ function loadFeed(){
   }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock||!deck.length)settle(null)});
 }
 function mkCard(p){var c=document.createElement('div');c.className='card';c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);return c}
-function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card')&&!s.querySelector('.card.back')){var b=mkCard(deck[1]);b.classList.add('back');b.style.opacity='0';s.insertBefore(b,s.firstChild);requestAnimationFrame(function(){requestAnimationFrame(function(){b.style.transition='opacity .25s';b.style.opacity=''})})}}
+function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card')&&!s.querySelector('.card.back')){var b=mkCard(deck[1]);b.classList.add('back');b.style.opacity='0';s.insertBefore(b,s.firstChild);setTimeout(function(){b.style.transition='opacity .25s';b.style.opacity=''},30)}}
 function settle(c){if(c)c.remove();var s=$('#stack');if(!s.querySelector('.card')||!deck.length){draw();return}ensureBack()}
 function draw(){
   var s=$('#stack');s.innerHTML='';
@@ -516,19 +516,20 @@ function dbl(c,x,y){
   lock=true;burst(c,x,y);hap('medium');
   setTimeout(function(){lock=false;fly('like')},520);
 }
-function bump(action){var I=me&&me.info;if(!I)return;I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
-  var w=I.swipes;if(w){normSw(I);if(w.free_left>0){if(!w.reset_in){w.reset_in=14400;w._at=Date.now()}w.free_left--}else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}
-  if(action==='super')setVibes(me.vibes-25);setInfo(I)}
+function bump(action){var I=me&&me.info;if(!I)return;bumpInfo(I,action);if(action==='super')setVibes(me.vibes-25);setInfo(I)}
+var pendA=[];function pendDel(id){pendA=pendA.filter(function(x){return x.id!==id})}
+function bumpInfo(I,action){I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
+  var w=I.swipes;if(w){normSw(I);if(w.free_left>0){if(!w.reset_in){w.reset_in=14400;w._at=Date.now()}w.free_left--}else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}}
 var sendQ=[];
 function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
-    pqDel(p.id);swPend--;if(swPend===0){setVibes(r.vibes);setInfo(r.info)}
+    pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=25});setVibes(r.vibes-sp);setInfo(I2)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   },function(e){
     if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
-    swPend--;
+    swPend--;pendDel(p.id);
     hist=hist.filter(function(x){return x.id!==p.id});
     if(!e.status){delete swiped[p.id];resync();toast(e.message);return}   // связь оборвалась: свайп остаётся в очереди и уйдёт при следующем открытии
     pqDel(p.id);recDel(p.id);   // связи нет: анкета вернётся с новой лентой, если сервер её не записал
@@ -546,11 +547,11 @@ window.addEventListener('pagehide',flushSwipes);
 function decide(action){
   var p=deck.shift();swiped[p.id]=1;recAdd(p.id);pqAdd(p.id,action);if(action!=='super'){hist=hist.filter(function(x){return x.id!==p.id});hist.push(p);if(hist.length>10)hist.shift()}bump(action);
   var back=$('#stack .card.back');
-  if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
-  swPend++;
+  if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.style.opacity='';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
+  swPend++;pendA.push({id:p.id,action:action});
   var it={p:p,action:action,sent:false};sendQ.push(it);
   swq=swq.then(function(){            // свайпы уходят по очереди: сервер и пул соединений маленькие
-    if(it.sent){swPend--;return}       // уже отправлен при сворачивании приложения
+    if(it.sent){swPend--;pendDel(p.id);return}       // уже отправлен при сворачивании приложения
     it.sent=true;sendQ=sendQ.filter(function(x){return x!==it});
     return sendSwipe(p,action,0)
   }).then(function(){},function(){});
@@ -731,7 +732,7 @@ function ownSwipe(pc,pp){pp=pp||me;
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
-function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':'До награды за вход: ещё '+leftText(i)+'. ')+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
+function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);$('#prog').textContent=(i.claimed?'Серия: '+i.streak+' дн., награда за вход получена. ':(leftText(i)?'До награды за вход: ещё '+leftText(i)+'. ':'Норма на сегодня выполнена, награда сейчас придёт. '))+swText(i);if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
   $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
