@@ -336,6 +336,10 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .card.back{box-shadow:none}
 :root[data-theme="dark"] .card{box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}}
+.sts{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.stt{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;background:var(--sf2);color:var(--mu);font-size:12px;line-height:1.4;white-space:nowrap}
+.stt b{font-weight:700}
+.stt.on{background:var(--acs);color:var(--ac)}
 </style>
 </head>
 <body>
@@ -958,6 +962,8 @@ function adHome(){
   adShell('Админ-панель','<div class="adtabs"><button data-act="adtab" data-t="p" aria-pressed="'+(AD.tab==='p')+'">Мои анкеты</button><button data-act="adtab" data-t="s" aria-pressed="'+(AD.tab==='s')+'">Поиск</button></div><div id="adbody"></div>');
   if(AD.tab==='p')adPersonas();else adSearch();
 }
+function adStats(t){if(!t)return'';function c(ic_,n,l){return'<span class="stt'+(n?' on':'')+'" title="'+l+'">'+ic_+' <b>'+n+'</b></span>'}
+  return'<div class="sts">'+c('💫',t.pairs,'Новые пары')+c('❤️',t.likes,'Лайки')+c('💬',t.msgs,'Непрочитанные сообщения')+'</div>'}
 function adPersonas(){
   $('#adbody').innerHTML='<div class="sub">Загрузка…</div>';
   api('/api/admin/personas').then(function(d){
@@ -965,7 +971,7 @@ function adPersonas(){
     var h='<p class="sub">Создавай сколько угодно анкет и переключайся между ними: приложение работает от имени выбранной анкеты (лента, пары, чаты).</p><button class="btn" style="width:100%;margin-bottom:12px" data-act="adnew">+ Новая анкета</button>';
     [d.main].concat(d.items).forEach(function(x,i){
       var on=x.id===d.active;
-      h+='<div class="row">'+adAv(x)+'<div><b>'+esc(x.name||(i?'Без имени':'Моя анкета'))+(x.age?', '+x.age:'')+vf(x)+(on?'<span class="tag">Активна</span>':'')+'</b><small>'+(i?(x.username?'@'+esc(x.username):'не заполнена'):'Твой основной аккаунт')+'</small></div>'+
+      h+='<div class="row">'+adAv(x)+'<div><b>'+esc(x.name||(i?'Без имени':'Моя анкета'))+(x.age?', '+x.age:'')+vf(x)+(on?'<span class="tag">Активна</span>':'')+'</b><small>'+(i?(x.username?'@'+esc(x.username):'не заполнена'):'Твой основной аккаунт')+'</small>'+adStats(x.stats)+'</div>'+
         (on?'':'<button class="btn ghost sm" data-act="adswitch" data-id="'+x.id+'">Выбрать</button>')+
         (i?'<button class="btn ghost sm" data-act="addel" data-id="'+x.id+'" data-n="'+esc(x.name||'без имени')+'" aria-label="Удалить анкету">'+ic('x',16)+'</button>':'')+'</div>'});
     $('#adbody').innerHTML=h;
