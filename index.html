@@ -411,6 +411,7 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
         <div class="ok" id="crow" style="display:none"></div>
         <div class="qa qcol"><button class="qb" data-act="pgfriends"><span data-i="users"></span><b>Друзья</b></button><button class="qb" data-act="vhist"><span data-i="bolt"></span><b>Транзакции</b></button></div>
         <div class="ok" id="vrow" style="display:none"></div>
+        <div class="qa qcol"><button class="qb" data-act="vshop"><span data-i="bolt"></span><b>Купить вайбы</b></button><button class="qb" data-act="delacc"><span data-i="x"></span><b>Удалить анкету</b></button></div>
       </div>
       <div id="medit">
         <div class="ph"><h1 id="meh">Создай анкету</h1><button class="edb" id="ecancel" data-act="editcancel" style="display:none">Отмена</button></div>
@@ -488,16 +489,17 @@ function vhDate(ts){var d=new Date(ts*1000),n=new Date(),t=function(x){return (x
 function vhRender(){var l=$('#vhl');if(!l)return;
   if(!VH.items.length){l.innerHTML='<div class="vhe">'+(VH.loaded?'Пока нет операций':'Загрузка…')+'</div>';return}
   l.innerHTML=VH.items.map(function(r){var p=r.delta>0;return '<div class="vhr"><div>'+vhText(r)+'<small>'+vhDate(r.ts)+'</small></div><b class="'+(p?'pos':'neg')+'">'+(p?'+':'−')+Math.abs(r.delta)+'</b></div>'}).join('')+(VH.more?'<button class="vhm" data-act="vhmore">Показать ещё</button>':'')}
+var VHC={};
 function vhLoad(reset){
   if(reset){VH.rid=(VH.rid||0)+1;VH.busy=false}
   if(VH.busy)return;VH.busy=true;var rid=VH.rid,f=VH.f;
   var q='?kind='+f+((!reset&&VH.items.length)?'&before='+VH.items[VH.items.length-1].id:'');
-  api('/api/vibes/history'+q).then(function(d){if(rid!==VH.rid)return;VH.items=reset?d.items:VH.items.concat(d.items);VH.more=d.more;VH.loaded=true}).catch(function(e){if(rid===VH.rid)toast(e.message)}).then(function(){if(rid!==VH.rid)return;VH.busy=false;vhRender()})}
+  api('/api/vibes/history'+q).then(function(d){if(rid!==VH.rid)return;VH.items=reset?d.items:VH.items.concat(d.items);VH.more=d.more;VH.loaded=true;VHC[f]={items:VH.items.slice(),more:VH.more}}).catch(function(e){if(rid===VH.rid)toast(e.message)}).then(function(){if(rid!==VH.rid)return;VH.busy=false;vhRender()})}
 function vhShell(){
   var tabs=[['all','Все'],['in','Начисления'],['out','Траты']].map(function(x){return '<button data-act="vhf" data-f="'+x[0]+'" aria-pressed="'+(VH.f===x[0])+'">'+x[1]+'</button>'}).join('');
   $('#pgbody').innerHTML='<div class="stats"><div><b id="vhbal">'+(me.vibes||0)+'</b><span>Баланс вайбов</span></div></div><div class="adtabs">'+tabs+'</div><div class="vhl" id="vhl"></div>';
   vhRender()}
-function openVibeHist(){VH={items:[],more:false,loaded:false,busy:false,f:'all',rid:0};openPg('Транзакции','vh',function(){vhShell();vhLoad(true)})}
+function openVibeHist(){var c0=VHC.all;VH={items:c0?c0.items.slice():[],more:c0?c0.more:false,loaded:!!c0,busy:false,f:'all',rid:0};openPg('Транзакции','vh',function(){vhShell();vhLoad(true)})}
 /* отдельные страницы поверх вкладок (друзья, транзакции, анкета из «Лайков») */
 var PG={k:''};
 function openPg(title,kind,render){PG.k=kind;var el=$('#pg');el.innerHTML='<div class="adh"><button data-act="pgclose" aria-label="Назад">'+ic('back')+'</button><b>'+esc(title)+'</b></div><div id="pgbody"></div>';el.classList.add('on');try{TG.BackButton.show()}catch(e){}render()}
@@ -828,7 +830,7 @@ function ownSwipe(pc,pp){pp=pp||me;
     else if(up&&Math.abs(dx)<8&&!m){var r=pc.getBoundingClientRect(),px=(e.clientX-r.left)/r.width;if(px<.4||px>.6)ps.go(px>.5?1:-1)}};
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
-  r.innerHTML='<span style="flex:1;min-width:150px">@'+esc(me.channel)+': +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
+  r.innerHTML='<span style="flex:1;min-width:150px">@'+esc(me.channel)+': +20 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
 function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);var bn=(i.swipes&&i.swipes.bonus)||0;$('#prog').textContent=bn>0?'Куплено свайпов: '+bn:'';if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
@@ -841,7 +843,9 @@ $('#pf').onchange=function(){var f=this.files[0];this.value='';if(!f)return;var 
 
 /* вайбы */
 function openVibes(){
-  api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);vibeSheet()}).catch(function(){vibeSheet()});
+  vibeSheet();   // сразу, без ожидания сервера
+  api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.channel_done=d.channel_done;setVibes(d.vibes);setInfo(d.info);
+    var sh=$('#sheet');if(sh.classList.contains('on')&&/^Вайбы/.test(sh.textContent))vibeSheet()}).catch(function(){})
 }
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
@@ -898,7 +902,7 @@ function vibeShopDraw(){
   sheet('<h3>Купить вайбы</h3><p>У тебя '+(me.vibes||0)+' вайбов · ⭐ Telegram Stars'+(SHOP.crypto?' · $ крипта (USDT, TON)':'')+'</p>'+rows+
     '<button class="btn ghost" data-act="close">Закрыть</button>')
 }
-function payDone(add){setVibes(me.vibes+add);closeSheet();toast('+'+add+' вайбов');refreshMe()}
+function payDone(add){VHC={};setVibes(me.vibes+add);closeSheet();toast('+'+add+' вайбов');refreshMe()}
 /* ждём, пока вайбы дойдут на баланс; kind: stars | crypto */
 function payWatch(kind,prev,tries){
   if(payWatching&&tries===0)return;payWatching=true;
@@ -1000,7 +1004,9 @@ document.addEventListener('click',function(e){
   else if(a==='vhist')openVibeHist();
   else if(a==='pgfriends')openFriends();
   else if(a==='pgclose')closePg();
-  else if(a==='vhf'){VH.f=t.dataset.f;VH.items=[];VH.more=false;VH.loaded=false;document.querySelectorAll('[data-act="vhf"]').forEach(function(x){x.setAttribute('aria-pressed',String(x===t))});vhRender();vhLoad(true)}
+  else if(a==='vhf'){VH.f=t.dataset.f;var cc=VHC[VH.f];VH.items=cc?cc.items.slice():[];VH.more=cc?cc.more:false;VH.loaded=!!cc;document.querySelectorAll('[data-act="vhf"]').forEach(function(x){x.setAttribute('aria-pressed',String(x===t))});vhRender();vhLoad(true)}
+  else if(a==='delacc'){if(me&&me.persona){toast('Анкеты админа удаляются в админ-панели');return}sheet('<h3>Удалить анкету?</h3><p>Фото, лайки, пары и переписки будут стёрты без возможности восстановления. Баланс вайбов сохранится.</p><button class="btn danger" data-act="delgo">Удалить навсегда</button><button class="btn ghost" data-act="close">Отмена</button>')}
+  else if(a==='delgo')api('/api/me/delete',{}).then(function(){closeSheet();try{['kv_rec_','kv_pq_','kv_seen_','kv_known_'].forEach(function(k){localStorage.removeItem(k+UID)})}catch(x){}resetApp();toast('Анкета удалена')}).catch(function(x){closeSheet();toast(x.message)});
   else if(a==='lkopen')openLike(+t.dataset.id);
   else if(a==='lkyes')likeAct(+t.dataset.id,'like');
   else if(a==='lkno')likeAct(+t.dataset.id,'pass');
@@ -1016,7 +1022,7 @@ document.addEventListener('click',function(e){
   else if(a==='refshare'){var su='https://t.me/share/url?url='+encodeURIComponent(me.ref_link||'')+'&text='+encodeURIComponent('Заходи в KIVO: знакомства в Telegram');try{TG.openTelegramLink(su)}catch(e){window.open(su)}}
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
-  else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+30 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
+  else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+20 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
   else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
