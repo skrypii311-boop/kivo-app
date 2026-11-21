@@ -377,6 +377,12 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .vf svg{width:11px;height:11px;stroke:var(--acx);stroke-width:3}
 .card .vf{width:20px;height:20px;margin:0;background:#3E8BFF}.card .vf svg{width:12px;height:12px;stroke:#fff}
 .vf.lg{width:20px;height:20px;margin:0}.vf.lg svg{width:12px;height:12px}
+
+/* магазин вайбов */
+.vp{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+.vp>b{font-size:16px}
+.vpb{display:flex;gap:8px}
+#sheet .vp .btn{width:auto;margin:0;padding:9px 14px;font-size:14px;min-width:78px}
 </style>
 </head>
 <body>
@@ -389,7 +395,7 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
       <div class="stack" id="stack"></div>
       <div class="acts">
         <div class="col"><button class="rb" data-act="nope" aria-label="Дизлайк"><span data-i="x"></span></button><span class="cap">Дизлайк</span></div>
-        <div class="col"><button class="rb sm main" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 25</span></div>
+        <div class="col"><button class="rb sm main" data-act="super" aria-label="Суперлайк"><span data-i="bolt"></span></button><span class="cap">Суперлайк · 30</span></div>
         <div class="col"><button class="rb" data-act="like" aria-label="Нравится"><span data-i="heart"></span></button><span class="cap">Нравится</span></div>
       </div>
     </section>
@@ -475,7 +481,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
 
 /* профиль: просмотр и правка */
 var VH={items:[],more:false,loaded:false,busy:false};
-var VR={start:'Стартовый баланс',signup:'Подарок за создание анкеты',verify:'Подтверждение анкеты',channel:'Подписка на канал',ref:'Друг освоился в KIVO',super:'Суперлайк',rewind:'Возврат к анкете',admin:'Начисление от администрации'};
+var VR={start:'Стартовый баланс',signup:'Подарок за создание анкеты',verify:'Подтверждение анкеты',channel:'Подписка на канал',ref:'Друг освоился в KIVO',super:'Суперлайк',rewind:'Возврат к анкете',admin:'Начисление от администрации',purchase:'Покупка вайбов'};
 function vhText(r){if(r.reason==='streak')return 'Серия входов'+(r.note?', день '+esc(r.note):'');if(r.reason==='swipes')return 'Покупка свайпов'+(r.note?': '+esc(r.note):'');return VR[r.reason]||'Операция'}
 function vhDate(ts){var d=new Date(ts*1000),n=new Date(),t=function(x){return (x<10?'0':'')+x},hm=t(d.getHours())+':'+t(d.getMinutes()),y=new Date(n);y.setDate(n.getDate()-1);
   if(d.toDateString()===n.toDateString())return 'Сегодня, '+hm;if(d.toDateString()===y.toDateString())return 'Вчера, '+hm;return t(d.getDate())+'.'+t(d.getMonth()+1)+'.'+d.getFullYear()+', '+hm}
@@ -545,12 +551,12 @@ function save(){
 function cardHTML(p,own){
   var loc=p.username?'@'+esc(p.username):'';
   return '<div class="pl"></div>'+(p.photos&&p.photos.length>1?'<div class="pdots">'+p.photos.map(function(_,i){return '<i'+(i===(p._i||0)?' class="on"':'')+'></i>'}).join('')+'</div>':'')+(p.photo?'':'<div class="ini">'+esc(p.name[0])+'</div>')+
-  (own?'':'<span class="stamp l">Назад · 25</span><span class="stamp n">Дальше</span><button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>')+
+  (own?'':'<span class="stamp l">Назад · 20</span><span class="stamp n">Дальше</span><button class="more" data-act="report" aria-label="Пожаловаться">'+ic('dots',18)+'</button>')+
   '<div class="ov">'+(!own&&p.super?'<span class="badge">Поставил(а) тебе суперлайк</span>':'')+'<h2><b class="nm">'+esc(p.name)+'</b><span>'+p.age+'</span>'+vf(p)+'</h2>'+
   '<div class="meta">'+loc+'</div>'+(p.bio?'<div class="bio">'+esc(p.bio)+'</div>':'')+
   '</div>';
 }
-function resync(){return api('/api/me').then(function(d){var I=d.info,sp=0;pendA.forEach(function(x){bumpInfo(I,x.action);if(x.action==='super')sp+=25});setVibes(d.vibes-sp);setInfo(I)}).catch(function(){})}
+function resync(){return api('/api/me').then(function(d){var I=d.info,sp=0;pendA.forEach(function(x){bumpInfo(I,x.action);if(x.action==='super')sp+=30});setVibes(d.vibes-sp);setInfo(I)}).catch(function(){})}
 function loadFeed(){
   if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
   api('/api/feed').then(function(d){
@@ -587,14 +593,14 @@ function drag(c,p){
 function askRewind(){
   var pv=hist[hist.length-1];
   if(!pv){toast('Нет анкеты, к которой можно вернуться');return}
-  sheet('<h3>Вернуться к «'+esc(pv.name)+'»?</h3><p>25 вайбов · у тебя '+(me.vibes||0)+'</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
+  sheet('<h3>Вернуться к «'+esc(pv.name)+'»?</h3><p>20 вайбов · у тебя '+(me.vibes||0)+'</p><button class="btn" data-act="rwgo">Заплатить 20 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
 var OUT={like:'translateY(-125%)',pass:'translateY(-125%)',super:'translateY(-125%)',skip:'translateY(-125%)'};
 function fly(action){
   var c=$('#stack .card:last-child');if(!c||!deck.length||lock||!me)return;
   var I=me.info||{};normSw(I);
   if(I.swipes&&I.swipes.left<=0){if(action==='skip')draw();noSwipes();return}
-  if(action==='super'&&me.vibes<25){deny('Не хватает вайбов: суперлайк стоит 25');return}
+  if(action==='super'&&me.vibes<30){deny('Не хватает вайбов: суперлайк стоит 30');return}
   lock=true;hideHint();hap();c.onpointerdown=null;c.style.pointerEvents='none';
   c.style.transition='transform .28s cubic-bezier(.3,0,.7,.4),opacity .28s ease-in';c.style.transform=OUT[action];c.style.opacity=0;
   decide(action);
@@ -607,14 +613,14 @@ function dbl(c,x,y){
   lock=true;burst(c,x,y);hap('medium');
   setTimeout(function(){lock=false;fly('like')},520);
 }
-function bump(action){var I=me&&me.info;if(!I)return;bumpInfo(I,action);if(action==='super')setVibes(me.vibes-25);setInfo(I)}
+function bump(action){var I=me&&me.info;if(!I)return;bumpInfo(I,action);if(action==='super')setVibes(me.vibes-30);setInfo(I)}
 var pendA=[];function pendDel(id){pendA=pendA.filter(function(x){return x.id!==id})}
 function bumpInfo(I,action){I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
   var w=I.swipes;if(w){normSw(I);if(w.free_left>0){if(!w.reset_in){w.reset_in=14400;w._at=Date.now()}w.free_left--}else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}}
 var sendQ=[];
 function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
-    pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=25});setVibes(r.vibes-sp);setInfo(I2)}
+    pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=30});setVibes(r.vibes-sp);setInfo(I2)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><p>'+(action==='super'?'Суперлайк сработал':'Вы понравились друг другу')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
@@ -840,11 +846,11 @@ function openVibes(){
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
   sheet('<h3>Вайбы</h3><p>Тратятся на суперлайки, возврат анкеты и свайпы</p>'+
-    '<div class="rule"><b>25</b><span>суперлайк · возврат анкеты</span></div>'+
+    '<div class="rule"><b>30 / 20</b><span>суперлайк / возврат анкеты</span></div>'+
     '<div class="rule"><b>+50</b><span>подтверждение анкеты</span></div>'+
-    '<div class="rule"><b>+10</b><span>за друга</span></div>'+
-    '<div class="rule"><b>5–40</b><span>серия входов</span></div>'+(ch?'<div class="rule"><b>+30</b><span>подписка на канал</span></div>':'')+
-    '<p>Бесплатно: 20 свайпов каждые 4 часа</p>'+(ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
+    '<div class="rule"><b>+20</b><span>за друга</span></div>'+
+    '<div class="rule"><b>3–25</b><span>серия входов</span></div>'+(ch?'<div class="rule"><b>+20</b><span>подписка на канал</span></div>':'')+
+    '<p>Бесплатно: 20 свайпов каждые 4 часа</p>'+(ch?'<button class="btn ghost" data-act="chan">Открыть канал (+20)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="vshop">Купить вайбы</button><button class="btn ghost" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
 }
 
 /* страница собеседника */
@@ -864,7 +870,7 @@ function renderPeer(d){
 }
 
 /* свайпы: тексты, время, магазин */
-var PACKS=[[10,20],[20,35],[50,85]];
+var PACKS=[[10,15],[20,27],[50,60]];
 function fmtWait(s){s=Math.max(0,Math.round(s));if(s<60)return 'меньше минуты';var h=Math.floor(s/3600),m=Math.ceil((s%3600)/60);if(m===60){h++;m=0}return (h?h+' ч ':'')+(m?m+' мин':'')}
 function unameWait(p){return Math.max(0,(p.uname_wait||0)-Math.floor((Date.now()-(p._ut||Date.now()))/1000))}
 function swWait(s){return s&&s.reset_in?Math.max(0,s.reset_in-Math.floor((Date.now()-(s._at||Date.now()))/1000)):0}
@@ -876,14 +882,57 @@ function swipeShop(empty){
   var s=(me.info&&me.info.swipes)||{reset_in:0};s.reset_in=swWait(s);
   sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty&&s.reset_in?'Новые через '+fmtWait(s.reset_in)+' · ':'')+'У тебя '+(me.vibes||0)+' вайбов</p>'+
     PACKS.map(function(p){return '<button class="btn" data-act="buy" data-n="'+p[0]+'">'+p[0]+' свайпов · '+p[1]+' вайбов</button>'}).join('')+
-    '<button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
+    '<button class="btn ghost" data-act="vshop">Купить вайбы</button><button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
 }
+
+/* покупка вайбов: Stars и крипта */
+var SHOP=null,payBusy=false,payWatching=false;
+function vibeShop(){
+  sheet('<h3>Купить вайбы</h3><p>Загружаем…</p><button class="btn ghost" data-act="close">Закрыть</button>');
+  api('/api/shop').then(function(d){SHOP=d;vibeShopDraw()}).catch(function(x){toast(x.message);closeSheet()})
+}
+function vibeShopDraw(){
+  var rows=SHOP.packs.map(function(p){
+    return '<div class="vp"><b>'+p.vibes+' вайбов</b><div class="vpb"><button class="btn" data-act="paystars" data-p="'+p.id+'">'+p.stars+' ⭐</button>'+
+      (SHOP.crypto?'<button class="btn ghost" data-act="paycrypto" data-p="'+p.id+'">$'+p.usd+'</button>':'')+'</div></div>'}).join('');
+  sheet('<h3>Купить вайбы</h3><p>У тебя '+(me.vibes||0)+' вайбов · ⭐ Telegram Stars'+(SHOP.crypto?' · $ крипта (USDT, TON)':'')+'</p>'+rows+
+    '<button class="btn ghost" data-act="close">Закрыть</button>')
+}
+function payDone(add){setVibes(me.vibes+add);closeSheet();toast('+'+add+' вайбов');refreshMe()}
+/* ждём, пока вайбы дойдут на баланс; kind: stars | crypto */
+function payWatch(kind,prev,tries){
+  if(payWatching&&tries===0)return;payWatching=true;
+  (function step(n){
+    if(n>=(kind==='crypto'?90:12)){payWatching=false;return}
+    var req=kind==='crypto'?api('/api/pay/status'):api('/api/me');
+    req.then(function(d){
+      if(d.vibes>prev){payWatching=false;payDone(d.vibes-prev)}
+      else setTimeout(function(){step(n+1)},kind==='crypto'?4000:1500)
+    }).catch(function(){setTimeout(function(){step(n+1)},kind==='crypto'?4000:1500)})
+  })(0)
+}
+function payStars(pid){
+  if(payBusy)return;payBusy=true;var prev=me.vibes||0;
+  api('/api/pay/stars',{pack:pid}).then(function(r){payBusy=false;
+    if(TG&&TG.openInvoice){TG.openInvoice(r.link,function(st){if(st==='paid'){toast('Оплачено, зачисляем…');closeSheet();payWatch('stars',prev,0)}else if(st==='failed'){toast('Оплата не прошла')}})}
+    else{try{TG.openTelegramLink(r.link)}catch(e){window.open(r.link)}payWatch('stars',prev,0)}
+  }).catch(function(x){payBusy=false;toast(x.message)})
+}
+function payCrypto(pid){
+  if(payBusy)return;payBusy=true;var prev=me.vibes||0;
+  api('/api/pay/crypto',{pack:pid}).then(function(r){payBusy=false;
+    sheet('<h3>Оплата криптой</h3><p>Счёт открыт в @CryptoBot. Оплати его, и вайбы придут сами (обычно за минуту).</p><button class="btn" data-act="paychk">Проверить оплату</button><button class="btn ghost" data-act="close">Закрыть</button>');
+    try{TG.openTelegramLink(r.url)}catch(e){window.open(r.url)}
+    payWatch('crypto',prev,0)
+  }).catch(function(x){payBusy=false;toast(x.message)})
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&me&&$('#sheet').classList.contains('on')&&/Оплата криптой/.test($('#sheet').textContent)){api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes)}).catch(function(){})}});
 
 /* вкладка «Друзья» */
 function renderFriends(){
   var bd=$('#pgbody');if(!bd||PG.k!=='friends')return;
   var r=me.ref||{invited:0,active:0,earned:0,pending:0};
-  bd.innerHTML='<p class="lead">+10 вайбов за каждого друга, который освоился в KIVO</p>'+
+  bd.innerHTML='<p class="lead">+20 вайбов за каждого друга, который освоился в KIVO</p>'+
     '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.active+'</b><span>Активны</span></div><div><b>'+r.earned+'</b><span>Вайбов</span></div></div>'+
     '<div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
     '<button class="btn" data-act="refshare" style="margin-top:12px">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>'+
@@ -919,7 +968,7 @@ function likeAct(id,action){
 }
 
 /* вкладка «Серия» */
-var SB=[5,10,20,25,30,35,40];
+var SB=[3,5,8,10,12,15,25];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
@@ -957,6 +1006,10 @@ document.addEventListener('click',function(e){
   else if(a==='lkno')likeAct(+t.dataset.id,'pass');
   else if(a==='vhmore')vhLoad(false);
   else if(a==='shop')swipeShop(false);
+  else if(a==='vshop')vibeShop();
+  else if(a==='paystars')payStars(t.dataset.p);
+  else if(a==='paycrypto')payCrypto(t.dataset.p);
+  else if(a==='paychk')api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes);else toast('Оплата пока не найдена')}).catch(function(x){toast(x.message)});
   else if(a==='peer')openPeer(+t.dataset.id);
   else if(a==='peerclose')closePeer();
   else if(a==='buy'){var bn=+t.dataset.n;api('/api/swipes/buy',{pack:bn}).then(function(r){setVibes(r.vibes);setInfo(r.info);closeSheet();toast('+'+bn+' свайпов')}).catch(function(x){toast(x.message)})}
