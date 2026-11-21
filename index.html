@@ -457,7 +457,7 @@ function setEdit(on){
 }
 function renderProfile(){
   if(!me)return;var b=$('#pbox');
-  b.innerHTML='<div class="card pcv" style="--h:'+(me.id%360)+'">'+cardHTML(me,true)+'</div>'+(me.username?'<div class="prog" style="padding-top:8px">Твой username: @'+esc(me.username)+' (виден всем пользователям)</div>':'')+(me.gender?'<div class="prog">Ты: '+GL[me.gender]+' · в ленте: '+(LL[me.looking]||'')+'</div>':'')+(me.persona?'<div class="ok">'+ic('shield',20)+'<span>Ты управляешь анкетой админа. Вернуться к своей можно в админ-панели.</span></div>':'')+(me.hidden?'<div class="ok">'+ic('dots',20)+'<span>Твоя анкета скрыта от других. Показ включается в режиме редактирования.</span></div>':'');
+  b.innerHTML='<div class="card pcv" style="--h:'+(me.id%360)+'">'+cardHTML(me,true)+'</div>'+(me.persona?'<div class="ok">'+ic('shield',20)+'<span>Анкета админа</span></div>':'')+(me.hidden?'<div class="ok">'+ic('dots',20)+'<span>Анкета скрыта</span></div>':'');
   var pc=b.firstChild,pu=(me.photos&&me.photos[me._i||0])||me.photo;if(pu)setBg(pc,pu);
   ownSwipe(pc);
   renderStats();
@@ -465,14 +465,14 @@ function renderProfile(){
 
 /* анкета */
 function fillForm(p){
-  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';var uw=unameWait(p);fu.disabled=uw>0;uHint(uw>0?'Username можно менять раз в 3 часа. Следующая смена через '+fmtWait(uw)+'.':'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
+  $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';var uw=unameWait(p);fu.disabled=uw>0;uHint(uw>0?'Смена через '+fmtWait(uw):'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
   if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=p.pref_min||18;$('#rmax').value=(p.pref_max&&p.pref_max<99)?p.pref_max:60;rangeUI();$('#vis').checked=!p.hidden;
 }
 var GL={m:'парень',f:'девушка'},LL={m:'парней',f:'девушек',any:'всех'};
 function segSet(id,v){document.querySelectorAll(id+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v))})}
 function segGet(id){var b=document.querySelector(id+' [aria-pressed="true"]');return b?b.dataset.v:''}
 document.querySelectorAll('.seg').forEach(function(g){g.onclick=function(e){var b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))})}});
-var UDEF='3–20 символов: латиница, цифры, _';
+var UDEF='';
 function uHint(t,st){var h=$('#uhint');h.textContent=t||UDEF;h.className='uhint'+(st?' '+st:'')}
 $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(0,20);if(v!==this.value)this.value=v;clearTimeout(uT);
   if(v.length<3){uHint(v?'Минимум 3 символа':'',v?'bad':'');return}
@@ -516,7 +516,7 @@ function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card
 function settle(c){if(c)c.remove();var s=$('#stack');if(!s.querySelector('.card')||!deck.length){draw();return}ensureBack()}
 function draw(){
   var s=$('#stack');s.innerHTML='';
-  if(!deck.length){s.innerHTML=feedBusy?'<div class="empty"><h3>Ищем анкеты…</h3></div>':'<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже: новые люди появляются каждый день.</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
+  if(!deck.length){s.innerHTML=feedBusy?'<div class="empty"><h3>Ищем анкеты…</h3></div>':'<div class="empty"><h3>Анкеты закончились</h3><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
   $('.acts').style.display='';deck.slice(0,3).forEach(preload);
   var f=mkCard(deck[0]);s.appendChild(f);drag(f,deck[0]);ensureBack();
 }
@@ -540,7 +540,7 @@ function drag(c,p){
 function askRewind(){
   var pv=hist[hist.length-1];
   if(!pv){toast('Нет анкеты, к которой можно вернуться');return}
-  sheet('<h3>Вернуться к анкете?</h3><p>Чтобы вернуться к анкете «'+esc(pv.name)+'», заплати 25 вайбов. У тебя сейчас '+(me.vibes||0)+'.</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
+  sheet('<h3>Вернуться к «'+esc(pv.name)+'»?</h3><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
 var OUT={like:'translateY(-125%)',pass:'translateY(-125%)',super:'translateY(-125%)',skip:'translateY(-125%)'};
 function fly(action){
@@ -569,7 +569,7 @@ function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
     pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=25});setVibes(r.vibes-sp);setInfo(I2)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Взаимная симпатия</h3><p>'+(action==='super'?'Суперлайк сработал: вы с '+esc(p.name)+' теперь пара.':'Вы с '+esc(p.name)+' понравились друг другу.')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   },function(e){
     if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
@@ -660,7 +660,7 @@ function loadPairs(){return api('/api/matches').then(function(d){
 }).catch(function(){})}
 function renderList(){
   var l=$('#list');
-  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь «Нравится» в ленте. Когда симпатия взаимная, человек появится здесь.</p></div>';return}
+  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3></div>';return}
   l.innerHTML=pairs.map(function(p){var u=unread(p),sub=p.last?(p.last_me?'Вы: ':'')+p.last:'Новая пара, напиши первым';
     return '<button class="row'+(u?' unread':'')+'" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="">':esc(p.name[0]))+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(sub)+'</small></div>'+(p.last_ts?'<span class="tm">'+fmtL(p.last_ts)+'</span>':'')+(u?'<span class="ud"></span>':'')+'</button>'}).join('');
 }
@@ -716,10 +716,10 @@ function leaveChat(){$('#peer').classList.remove('on');clearInterval(poll);cur=n
 
 /* жалобы и подтверждение */
 var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
-function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3><p>Аккаунт сразу пропадёт у тебя. Жалобу проверит модератор, решение о блокировке принимает он.</p>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
+function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
 function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me||me.persona){v.style.display='none';return}v.style.display='flex';
   var btn='<button class="btn" style="padding:8px 14px" data-act="verify">Пройти</button>';
-  v.innerHTML=me.verified?'<span class="vf lg">'+ic('check',14)+'</span><span>Анкета подтверждена</span>':me.vstatus==='pending'?'<span>Кружок на проверке. Ответ придёт в чат с ботом.</span>':me.vstatus==='rejected'?'<span style="flex:1">Подтверждение отклонено'+(me.vcomment?': '+esc(me.vcomment):'')+'. Запиши новый кружок.</span>'+btn:'<span style="flex:1">Подтверди анкету кружком и получи +50 вайбов</span>'+btn}
+  v.innerHTML=me.verified?'<span class="vf lg">'+ic('check',14)+'</span><span>Анкета подтверждена</span>':me.vstatus==='pending'?'<span>Кружок на проверке</span>':me.vstatus==='rejected'?'<span style="flex:1">Отклонено'+(me.vcomment?': '+esc(me.vcomment):'')+'</span>'+btn:'<span style="flex:1">Подтверди анкету: +50 вайбов</span>'+btn}
 var myPhotos=[],pickSlot=0,lastTap=0;
 function renderStats(){var s=me&&me.stats,e=$('#stats');if(!s){e.style.display='none';return}e.style.display='flex';e.innerHTML='<div><b>'+s.likes+'</b><span>Лайки</span></div><div><b>'+s.passes+'</b><span>Дизлайки</span></div><div><b>'+s.matches+'</b><span>Пары</span></div>'}
 function hideBoot(){$('#boot').style.display='none'}
@@ -775,7 +775,7 @@ function ownSwipe(pc,pp){pp=pp||me;
     else if(up&&Math.abs(dx)<8&&!m){var r=pc.getBoundingClientRect(),px=(e.clientX-r.left)/r.width;if(px<.4||px>.6)ps.go(px>.5?1:-1)}};
 }
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
-  r.innerHTML='<span style="flex:1;min-width:150px">Подпишись на @'+esc(me.channel)+' и получи +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
+  r.innerHTML='<span style="flex:1;min-width:150px">@'+esc(me.channel)+': +30 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
 function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);var bn=(i.swipes&&i.swipes.bonus)||0;$('#prog').textContent=bn>0?'Куплено свайпов: '+bn:'';if($('#streak').classList.contains('on'))renderStreak()}
 function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
   var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
@@ -792,12 +792,12 @@ function openVibes(){
 }
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
-  sheet('<h3>Вайбы</h3><p>Внутренняя валюта KIVO. Вайбы тратятся на суперлайк (25, сразу даёт пару), возврат к прошлой анкете (25) и дополнительные свайпы.</p>'+
-    '<div class="rule"><b>+20</b><span>в подарок за создание анкеты</span></div><div class="rule"><b>+50</b><span>за подтверждение анкеты кружком</span></div>'+
-    '<div class="rule"><b>+10</b><span>за каждого друга, который создал анкету по твоей ссылке, сделал 7 свайпов и поставил 3 лайка (вкладка «Друзья»)</span></div>'+
-    '<div class="rule"><b>5–40</b><span>за серию входов (вкладка «Серия»)</span></div>'+(ch?'<div class="rule"><b>+30</b><span>за подписку на наш канал</span></div>':'')+
-    '<p>Каждые 4 часа даётся 20 бесплатных свайпов (лайк, дизлайк, суперлайк или пропуск). Они не накапливаются: через 4 часа снова 20. Дополнительные можно купить за вайбы.</p>'+
-    (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Я подписался, проверить</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Понятно</button>')
+  sheet('<h3>Вайбы</h3>'+
+    '<div class="rule"><b>25</b><span>суперлайк · возврат анкеты</span></div>'+
+    '<div class="rule"><b>+50</b><span>подтверждение анкеты</span></div>'+
+    '<div class="rule"><b>+10</b><span>за друга</span></div>'+
+    '<div class="rule"><b>5–40</b><span>серия входов</span></div>'+(ch?'<div class="rule"><b>+30</b><span>подписка на канал</span></div>':'')+
+    (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
 }
 
 /* страница собеседника */
@@ -827,7 +827,7 @@ setInterval(function(){if(!me||!me.info||document.hidden)return;var ex=normSw(me
 function noSwipes(){swipeShop(true)}
 function swipeShop(empty){
   var s=(me.info&&me.info.swipes)||{reset_in:0};s.reset_in=swWait(s);
-  sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty?'Бесплатные 20 свайпов выдаются каждые 4 часа'+(s.reset_in?': следующие через '+fmtWait(s.reset_in):'')+'. Можно подождать или купить дополнительные свайпы, они не сгорают. ':'Купленные свайпы не сгорают и тратятся после бесплатных. ')+'У тебя '+(me.vibes||0)+' вайбов.</p>'+
+  sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty&&s.reset_in?'Новые через '+fmtWait(s.reset_in)+' · ':'')+'У тебя '+(me.vibes||0)+' вайбов</p>'+
     PACKS.map(function(p){return '<button class="btn" data-act="buy" data-n="'+p[0]+'">'+p[0]+' свайпов · '+p[1]+' вайбов</button>'}).join('')+
     '<button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
 }
@@ -835,17 +835,10 @@ function swipeShop(empty){
 /* вкладка «Друзья» */
 function renderFriends(){
   var r=me.ref||{invited:0,active:0,earned:0,pending:0};
-  $('#friends').innerHTML='<h1>Друзья</h1><p class="sub">Приглашай друзей в KIVO. +10 вайбов за каждого придут автоматически, когда друг освоится: сделает 7 свайпов и поставит 3 лайка.</p>'+
-    '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.active+'</b><span>Активны</span></div><div><b>'+r.earned+'</b><span>Получено вайбов</span></div></div>'+
-    (r.pending?'<p class="sub" style="margin-top:10px">Ещё осваиваются: '+r.pending+'</p>':'')+
-    '<div class="lbl">Твоя ссылка</div><div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
-    '<button class="btn" data-act="refshare">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>'+
-    '<div class="lbl">Как это работает</div>'+
-    '<div class="rule"><b>1</b><span>Отправь ссылку другу</span></div>'+
-    '<div class="rule"><b>2</b><span>Друг открывает бота и создаёт анкету</span></div>'+
-    '<div class="rule"><b>3</b><span>Друг делает минимум 7 свайпов (любых) и ставит минимум 3 лайка</span></div>'+
-    '<div class="rule"><b>+10</b><span>Вайбы сразу приходят тебе, один раз за каждого друга</span></div>'+
-    '<p class="sub">Считаются только новые пользователи, у которых ещё не было анкеты. Лимита на число друзей нет.</p>';
+  $('#friends').innerHTML='<h1>Друзья</h1>'+
+    '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.active+'</b><span>Активны</span></div><div><b>'+r.earned+'</b><span>Вайбов</span></div></div>'+
+    '<div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
+    '<button class="btn" data-act="refshare">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>';
 }
 
 /* вкладка «Серия» */
@@ -857,16 +850,11 @@ function renderStreak(){
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
-    '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span></div>'+
-    '<div class="gift">'+(i.claimed?'✅ Награда за сегодня получена':'🎁 Награда за сегодня: +'+(i.reward||5)+' вайбов')+'</div></div></div>'+
-    '<div class="lbl">Прогресс за сегодня</div><div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
-    '<div class="sub" style="margin-top:8px">'+(i.claimed?'🎉 Готово, ждём тебя завтра':'👆 Свайпов: '+Math.min(ds,ns)+' из '+ns+(nl?' · ❤️ Лайков: '+Math.min(dl,nl)+' из '+nl:''))+'</div>'+
-    '<div class="lbl">Награды по дням</div><div class="days">'+cells+'</div><p class="sub">С 8-го дня +40 вайбов за каждый день.</p>'+
-    '<div class="lbl">Как это работает</div>'+
-    '<div class="hw"><div class="rule"><b>'+ns+' 👆</b><span>свайпов за день, лайки не обязательны: лайк, дизлайк, суперлайк или пропуск свайпом вверх</span></div>'+
-    (nl?'<div class="rule"><b>'+nl+' ❤️</b><span>из них должны быть лайками</span></div>':'')+
-    '<div class="rule"><b>🔁 1 день</b><span>пропустишь, и серия начнётся заново</span></div>'+
-    '<div class="rule"><b>🌙 00:00</b><span>новый день начинается в полночь по Москве</span></div></div>';
+    '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+'</span></div>'+
+    '<div class="gift">'+(i.claimed?'✅ +'+(i.reward||5)+' получено':'🎁 +'+(i.reward||5)+' вайбов сегодня')+'</div></div></div>'+
+    '<div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
+    '<div class="sub" style="margin-top:8px">'+(i.claimed?'До завтра':'👆 '+Math.min(ds,ns)+'/'+ns+(nl?' · ❤️ '+Math.min(dl,nl)+'/'+nl:''))+'</div>'+
+    '<div class="days" style="margin-top:14px">'+cells+'</div>';
 }
 
 /* действия */
@@ -896,7 +884,7 @@ document.addEventListener('click',function(e){
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
   else if(a==='rep'||a==='blk'){var id=repId;closeSheet();api('/api/report',{target:id,report:a==='rep',reason:t.dataset.r}).catch(function(){});deck=deck.filter(function(x){return x.id!==id});draw();if(cur&&cur.id===id){leaveChat();loadPairs()}toast('Готово, аккаунт скрыт')}
-  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3><p>Бот покажет жест. Запиши кружок (до 30 сек) и повтори его. Увидит только модератор. После проверки: значок и +50 вайбов.</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>');
+  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3><p>Запиши кружок с жестом из бота. +50 вайбов.</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>');
   else if(a==='vgo'){closeSheet();var u='https://t.me/'+me.bot+'?start=verify';try{TG.openTelegramLink(u)}catch(e){window.open(u)}setTimeout(function(){try{TG.close()}catch(e){}},400)}
 });
 
@@ -931,7 +919,7 @@ function boot(){
   try{TG.ready();TG.expand()}catch(e){}
   try{TG.disableVerticalSwipes()}catch(e){}
   try{TG.BackButton.onClick(function(){if($('#peer').classList.contains('on')){closePeer();return}if($('#admin').classList.contains('on')){adBack();return}if(cur){leaveChat();loadPairs()}})}catch(e){}
-  if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3><p>Приложение работает только внутри бота.</p></div>';return}
+  if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3></div>';return}
   try{if(localStorage.getItem('kv_hint'))hideHint()}catch(e){}
   fillForm({});load();
 }
@@ -954,7 +942,7 @@ function adPersonas(){
   $('#adbody').innerHTML='<div class="sub">Загрузка…</div>';
   api('/api/admin/personas').then(function(d){
     if(!$('#adbody'))return;
-    var h='<p class="sub">Переключайся между анкетами: приложение работает от имени выбранной.</p><button class="btn" style="width:100%;margin-bottom:12px" data-act="adnew">+ Новая анкета</button>';
+    var h='<button class="btn" style="width:100%;margin-bottom:12px" data-act="adnew">+ Новая анкета</button>';
     [d.main].concat(d.items).forEach(function(x,i){
       var on=x.id===d.active;
       h+='<div class="row">'+adAv(x)+'<div><b>'+esc(x.name||(i?'Без имени':'Моя анкета'))+(x.age?', '+x.age:'')+vf(x)+(on?'<span class="tag">Активна</span>':'')+'</b><small>'+(i?(x.username?'@'+esc(x.username):'не заполнена'):'Твой основной аккаунт')+'</small>'+adStats(x.stats)+'</div>'+
@@ -972,7 +960,7 @@ function adRow(x){
   return '<button class="row" data-act="aduser" data-id="'+x.id+'">'+adAv(x)+'<div><b>'+esc(x.name||'Без анкеты')+(x.age?', '+x.age:'')+vf(x)+(x.banned?'<span class="tag red">Блок</span>':'')+(x.rep?'<span class="tag">🚩 '+x.rep+'</span>':'')+'</b><small>'+(x.username?'@'+esc(x.username):'username не задан')+' · id '+x.id+'</small></div></button>'}
 function adRunSearch(){
   var q=(AD.q||'').trim();if(!$('#adres'))return;
-  if(!q){$('#adres').innerHTML='<div class="sub">Введи username (можно часть), имя или Telegram ID.</div>';return}
+  if(!q){$('#adres').innerHTML='';return}
   api('/api/admin/search?q='+encodeURIComponent(q)).then(function(d){
     if(!$('#adres')||q!==(AD.q||'').trim())return;
     $('#adres').innerHTML=d.items.length?d.items.map(adRow).join(''):'<div class="sub">Ничего не найдено</div>';
