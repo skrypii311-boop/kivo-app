@@ -389,6 +389,23 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .qa.qcol .qb.buy svg{color:#fff}
 .qa.qcol .qb.dang{background:rgba(217,83,79,.10);border-color:rgba(217,83,79,.35);color:#d9534f;margin-top:8px}
 .qa.qcol .qb.dang svg{color:#d9534f}
+/* галочка подтверждения: компактная капсула */
+.vf,.vf.lg{display:inline-grid;place-items:center;width:24px;height:16px;margin-left:6px;border-radius:99px;background:var(--acs);box-shadow:none;top:0;vertical-align:middle}
+.vf svg,.vf.lg svg{width:10px;height:10px;stroke:var(--ac);stroke-width:3.4}
+.vf.lg{width:28px;height:18px;margin:0}.vf.lg svg{width:11px;height:11px}
+.card .vf{width:26px;height:18px;margin:0;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.38)}
+.card .vf svg{width:11px;height:11px;stroke:#fff;stroke-width:3.4}
+/* магазин вайбов */
+.vp{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+.vp>b{font-size:16px}
+.vpb{display:flex;gap:8px}
+#sheet .vp .btn{width:auto;margin:0;padding:9px 14px;font-size:14px;min-width:78px}
+
+/* кнопки профиля: покупка выделена акцентом, удаление мягко-красное */
+.qa.qcol .qb.buy{background:var(--grad);color:#fff;border-color:transparent;font-weight:700}
+.qa.qcol .qb.buy svg{color:#fff}
+.qa.qcol .qb.dang{background:rgba(217,83,79,.10);border-color:rgba(217,83,79,.35);color:#d9534f;margin-top:8px}
+.qa.qcol .qb.dang svg{color:#d9534f}
 /* галочка подтверждения: минимализм, без заливки и теней */
 .vf,.vf.lg{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;border-radius:50%;background:var(--acs);box-shadow:none;top:0;vertical-align:middle}
 .vf svg,.vf.lg svg{width:10px;height:10px;stroke:var(--ac);stroke-width:3}
@@ -443,7 +460,6 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
         <label class="l">Кого показывать</label><div class="seg" id="look"><button type="button" data-v="f" aria-pressed="false">Девушек</button><button type="button" data-v="m" aria-pressed="false">Парней</button><button type="button" data-v="any" aria-pressed="false">Без разницы</button></div>
         <label class="l" id="agel">Возраст, который тебе интересен</label>
         <div class="rng"><div class="tr"></div><div class="fl" id="rfl"></div><input type="range" id="rmin" min="18" max="60" value="18" aria-label="Возраст от"><input type="range" id="rmax" min="18" max="60" value="60" aria-label="Возраст до"></div>
-        <label class="chk" id="adultrow" style="margin-top:18px"><input type="checkbox" id="adult"> Мне есть 18 лет</label>
         <label class="sw" id="visrow" style="display:none"><span>Показывать мою анкету другим</span><input type="checkbox" id="vis" checked></label>
         <div class="err" id="err" role="alert"></div>
         <button class="btn" style="width:100%;margin:6px 0 10px" data-act="save">Сохранить</button>
@@ -553,17 +569,16 @@ $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(
   uHint('Проверяем…','');
   uT=setTimeout(function(){api('/api/username?u='+encodeURIComponent(v)).then(function(r){if($('#fu').value!==v)return;uHint(r.ok?'Username свободен':r.reason,r.ok?'good':'bad')}).catch(function(){})},350)};
 function save(){
-  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),adult:$('#adult').checked,pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=60?99:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
+  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=60?99:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
   $('#err').textContent='';
   if(!$('#fu').disabled&&!/^[A-Za-z0-9_]{3,20}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, только английские буквы, цифры и _';return}
   if(!b.name||!b.age){$('#err').textContent='Заполни имя и возраст';return}
   if(!b.gender){$('#err').textContent='Выбери свой пол';return}
   if(!b.looking){$('#err').textContent='Выбери, кого показывать в ленте';return}
   if(b.age<18){$('#err').textContent='KIVO только для тех, кому 18 и больше';return}
-  if(!me&&!b.adult){$('#err').textContent='Подтверди, что тебе есть 18 лет';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
   api('/api/me',b).then(function(r){GIFT=(r&&r.gift)||0;return api('/api/me')}).then(function(d){
-    var first=!me;me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';setEdit(false);
+    var first=!me;me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();setEdit(false);
     $('#gifthint').style.display='none';toast(first?(GIFT?'Анкета создана: +'+GIFT+' вайбов в подарок':'Анкета создана'):'Сохранено');if(!started)start()
   }).catch(function(e){$('#err').textContent=e.message});
 }
@@ -1070,8 +1085,8 @@ function load(){
   api('/api/me').then(function(d){
     IS_ADMIN=!!d.is_admin;$('#adminb').hidden=!IS_ADMIN;$('#adminb').classList.toggle('act',!!d.persona);
     loadLocal(d.uid,d.persona);
-    if(!d.exists){me=null;setEdit(true);$('#gifthint').style.display=d.invited?'':'none';$('#fn').value=d.name||'';myPhotos=(d.photos||[]).slice();renderPhotos();$('#adultrow').style.display='';hideBoot();return}
-    me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();$('#adultrow').style.display='none';hideBoot();
+    if(!d.exists){me=null;setEdit(true);$('#gifthint').style.display=d.invited?'':'none';$('#fn').value=d.name||'';myPhotos=(d.photos||[]).slice();renderPhotos();hideBoot();return}
+    me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();hideBoot();
     if(!d.username||!d.gender||!d.looking){setEdit(true);toast(d.username?'Укажи свой пол и кого показывать':'Придумай username, чтобы продолжить');return}   // старые анкеты без username или пола
     setEdit(false);start();
   }).catch(function(e){hideBoot();toast(e.message)});
