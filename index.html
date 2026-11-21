@@ -418,6 +418,7 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .pk .k small{font-weight:600;font-size:11.5px;color:#1F9D55;background:rgba(31,157,85,.14);padding:2px 8px;border-radius:99px}
 .pk .pr{flex:none;min-width:86px;padding:9px 14px;border-radius:12px;background:var(--grad);color:#fff;font-weight:700;font-size:14px;text-align:center}
 .pk:active{transform:scale(.99)}
+#pgbody .pk{background:var(--sf);box-shadow:var(--sh)}
 #paym{margin:4px 0 6px}
 </style>
 </head>
@@ -447,7 +448,7 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
         <div class="ok" id="crow" style="display:none"></div>
         <div class="qa qcol"><button class="qb" data-act="pgfriends"><span data-i="users"></span><b>Друзья</b></button><button class="qb" data-act="vhist"><span data-i="bolt"></span><b>Транзакции</b></button></div>
         <div class="ok" id="vrow" style="display:none"></div>
-        <div class="qa qcol"><button class="qb buy" data-act="vshop"><span data-i="bolt"></span><b>Купить вайбы</b></button><button class="qb dang" data-act="delacc"><span data-i="x"></span><b>Удалить анкету</b></button></div>
+        <div class="qa qcol"><button class="qb buy" data-act="store"><span data-i="bolt"></span><b>Магазин</b></button><button class="qb dang" data-act="delacc"><span data-i="x"></span><b>Удалить анкету</b></button></div>
       </div>
       <div id="medit">
         <div class="ph"><h1 id="meh">Создай анкету</h1><button class="edb" id="ecancel" data-act="editcancel" style="display:none">Отмена</button></div>
@@ -500,7 +501,7 @@ $('#shade').onclick=closeSheet;
 function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b);o.keepalive=true}
   var ac=window.AbortController?new AbortController():null,tm=null;if(ac){o.signal=ac.signal;tm=setTimeout(function(){ac.abort()},25000)}
   return fetch(path,o).then(function(r){clearTimeout(tm);return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})},function(x){clearTimeout(tm);throw new Error("Нет связи с сервером, попробуй ещё раз")})}
-function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v;var b=$('#vhbal');if(b)b.textContent=v}
+function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v;var b=$('#vhbal');if(b)b.textContent=v;var sb=$('#shbal');if(sb)sb.textContent=v}
 
 /* вкладки */
 function refreshMe(cb){api('/api/me').then(function(d){me.ref=d.ref;me.earned=d.earned;me.ref_link=d.ref_link;me.stats=d.stats;me.channel_done=d.channel_done;me.uname_wait=d.uname_wait;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);if(d.streak_claimed)toast('День '+d.streak_claimed.day+' подряд: +'+d.streak_claimed.bonus+' вайбов');if(cb)cb()}).catch(function(){})}
@@ -888,7 +889,7 @@ function vibeSheet(){
     '<div class="rule"><b>+50</b><span>подтверждение анкеты</span></div>'+
     '<div class="rule"><b>+20 / +10</b><span>за друга тебе / другу по твоей ссылке. Максимум 300 в неделю</span></div>'+
     '<div class="rule"><b>3–25</b><span>серия входов</span></div>'+(ch?'<div class="rule"><b>+20</b><span>подписка на канал</span></div>':'')+
-    '<p>Бесплатно: 20 свайпов каждые 4 часа</p>'+(ch?'<button class="btn ghost" data-act="chan">Открыть канал (+20)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="vshop">Купить вайбы</button><button class="btn ghost" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
+    '<p>Бесплатно: 20 свайпов каждые 4 часа</p>'+(ch?'<button class="btn ghost" data-act="chan">Открыть канал (+20)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="store">Открыть магазин</button><button class="btn ghost" data-act="close">Закрыть</button>')
 }
 
 /* страница собеседника */
@@ -918,9 +919,8 @@ setInterval(function(){if(!me||!me.info||document.hidden)return;var ex=normSw(me
 function noSwipes(){swipeShop(true)}
 function swipeShop(empty){
   var s=(me.info&&me.info.swipes)||{reset_in:0};s.reset_in=swWait(s);
-  sheet('<h3>'+(empty?'Свайпы закончились':'Купить свайпы')+'</h3><p>'+(empty&&s.reset_in?'Новые через '+fmtWait(s.reset_in)+' · ':'')+'У тебя '+(me.vibes||0)+' вайбов</p>'+
-    PACKS.map(function(p){return '<button class="btn" data-act="buy" data-n="'+p[0]+'">'+p[0]+' свайпов · '+p[1]+' вайбов</button>'}).join('')+
-    '<button class="btn ghost" data-act="vshop">Купить вайбы</button><button class="btn ghost" data-act="close">'+(empty?'Подожду':'Закрыть')+'</button>')
+  sheet('<h3>Свайпы закончились</h3><p>'+(s.reset_in?'Новые через '+fmtWait(s.reset_in):'Скоро появятся новые')+'</p>'+
+    '<button class="btn" data-act="store">Открыть магазин</button><button class="btn ghost" data-act="close">Подожду</button>')
 }
 
 /* покупка вайбов: Stars и крипта */
@@ -938,6 +938,28 @@ function vibeShopDraw(){
   sheet('<h3>Купить вайбы</h3><p style="margin-bottom:12px">У тебя '+(me.vibes||0)+' вайбов. Выбери способ оплаты и пакет.</p>'+seg+rows+
     '<p style="margin:12px 0 4px;font-size:13px">'+(isC?'Оплата в @CryptoBot: USDT или TON. Цена указана в долларах.':'Оплата звёздами Telegram. Чем больше пакет, тем выгоднее.')+'</p>'+
     '<button class="btn ghost" data-act="close">Закрыть</button>')
+}
+/* страница «Магазин»: вайбы за деньги и свайпы за вайбы */
+function openStore(){
+  closeSheet();
+  openPg('Магазин','shop',function(){
+    $('#pgbody').innerHTML='<div class="sub">Загрузка…</div>';
+    api('/api/shop').then(function(d){SHOP=d;renderStore()}).catch(function(x){toast(x.message);closePg()})
+  })
+}
+function renderStore(){
+  var bd=$('#pgbody');if(!bd||PG.k!=='shop'||!SHOP)return;
+  var cr=!!SHOP.crypto;if(PAYM==='crypto'&&!cr)PAYM='stars';
+  var isC=PAYM==='crypto',price=function(p){return isC?parseFloat(p.usd):p.stars},b0=price(SHOP.packs[0])/SHOP.packs[0].vibes;
+  var rows=SHOP.packs.map(function(p){var sv=Math.round((1-price(p)/p.vibes/b0)*100);
+    return '<button class="pk" data-act="'+(isC?'paycrypto':'paystars')+'" data-p="'+p.id+'"><span class="k">'+p.vibes+' вайбов'+(sv>0?'<small>−'+sv+'%</small>':'')+'</span><span class="pr">'+(isC?'$'+p.usd:p.stars+' ⭐')+'</span></button>'}).join('');
+  var seg=cr?'<div class="seg" id="paym" style="margin-bottom:4px"><button type="button" data-act="paym" data-m="stars" aria-pressed="'+(!isC)+'">⭐ Telegram Stars</button><button type="button" data-act="paym" data-m="crypto" aria-pressed="'+isC+'">$ Крипта</button></div>':'';
+  var sw=PACKS.map(function(p){return '<button class="pk" data-act="buy" data-n="'+p[0]+'"><span class="k">'+p[0]+' свайпов</span><span class="pr">'+p[1]+' вайбов</span></button>'}).join('');
+  bd.innerHTML='<p class="lead">У тебя <b id="shbal">'+(me.vibes||0)+'</b> вайбов. Вайбы тратятся на суперлайки, возврат анкеты и свайпы.</p>'+
+    '<div class="lbl">Вайбы</div>'+seg+rows+
+    '<div class="cap" style="margin-top:10px">'+(isC?'Оплата в @CryptoBot: USDT или TON. Цена указана в долларах.':'Оплата звёздами Telegram. Чем больше пакет, тем выгоднее.')+'</div>'+
+    '<div class="lbl" style="margin-top:22px">Свайпы за вайбы</div>'+sw+
+    '<div class="cap" style="margin-top:10px">Бесплатно: 20 свайпов каждые 4 часа</div>';
 }
 function payDone(add){VHC={};setVibes(me.vibes+add);closeSheet();toast('+'+add+' вайбов');refreshMe()}
 /* ждём, пока вайбы дойдут на баланс; kind: stars | crypto */
@@ -1052,11 +1074,10 @@ document.addEventListener('click',function(e){
   else if(a==='lkyes')likeAct(+t.dataset.id,'like');
   else if(a==='lkno')likeAct(+t.dataset.id,'pass');
   else if(a==='vhmore')vhLoad(false);
-  else if(a==='shop')swipeShop(false);
-  else if(a==='vshop')vibeShop();
+  else if(a==='shop'||a==='vshop'||a==='store')openStore();
   else if(a==='paystars')payStars(t.dataset.p);
   else if(a==='paycrypto')payCrypto(t.dataset.p);
-  else if(a==='paym'){PAYM=t.dataset.m;vibeShopDraw()}
+  else if(a==='paym'){PAYM=t.dataset.m;if(PG.k==='shop')renderStore();else vibeShopDraw()}
   else if(a==='paychk')api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes);else toast('Оплата пока не найдена')}).catch(function(x){toast(x.message)});
   else if(a==='peer')openPeer(+t.dataset.id);
   else if(a==='peerclose')closePeer();
