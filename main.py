@@ -827,92 +827,164 @@ async def api_messages_post(request):
     return web.json_response({"ok": True, "id": mid})
 
 
+ADMIN_PHOTOS = 3   # сколько фото показывать в компактной карточке (в «Подробнее» приходят все)
+
+
+async def load_profile(uid):
+    """Собирает всё об анкете для модератора (фото, поля, статистика)."""
+    async with pool.acquire() as c:
+        u = await c.fetchrow("SELECT * FROM users WHERE telegram_id=$1", uid)
+        if not u:
+            return None
+        photos = [bytes(r["data"]) for r in await c.fetch(
+            "SELECT data FROM user_photos WHERE user_id=$1 ORDER BY slot", uid)]
+        got = await c.fetchrow(
+            "SELECT count(*) FILTER (WHERE action IN ('like','super')) AS likes, "
+            "count(*) FILTER (WHERE action='pass') AS passes FROM likes WHERE target_id=$1", uid)
+        gave = await c.fetchrow(
+            "SELECT count(*) FILTER (WHERE action IN ('like','super')) AS likes, "
+            "count(*) FILTER (WHERE action='super') AS supers, "
+            "count(*) FILTER (WHERE action='pass') AS passes, "
+            "count(*) FILTER (WHERE action='skip') AS skips FROM likes WHERE user_id=$1", uid)
+        mt = await c.fetchval("SELECT count(*) FROM users u WHERE u.age IS NOT NULL AND "
+                              + MATCH_SQL.format(o="u.telegram_id"), uid)
+        reps = await c.fetch("SELECT reason, count(*) AS n FROM reports WHERE target_id=$1 "
+                             "GROUP BY reason ORDER BY n DESC", uid)
+        made = await c.fetchval("SELECT count(*) FROM reports WHERE user_id=$1", uid)
+        ref = await ref_info(c, uid)
+    return {"u": u, "photos": photos, "got": got, "gave": gave, "mt": mt, "reps": reps, "made": made, "ref": ref}
+
+
+def gender_word(u):
+    return {"m": "парень", "f": "девушка"}.get(u["gender"] or "", "пол не указан")
+
+
+def short_profile(d, uid):
+    """Компактная карточка: 4-5 строк."""
+    u = d["u"]
+    flags = []
+    if u["verified"] == 1:
+        flags.append("✅ подтверждена")
+    if u["banned"] == 1:
+        flags.append("🚫 заблокирована")
+    if u["hidden"] == 1:
+        flags.append("скрыта")
+    bio = (u["bio"] or "").strip().replace("\n", " ")
+    bio = (bio[:160] + "…") if len(bio) > 160 else bio
+    rep_total = sum(r["n"] for r in d["reps"])
+    lines = [
+        f"{u['name'] or '-'}, {u['age'] or '?'} · {gender_word(u)} · {u['city'] or 'без города'}",
+        f"@{u['username'] or '-'} · id {uid}" + (f" · {', '.join(flags)}" if flags else ""),
+        f"«{bio}»" if bio else "О себе: не заполнено",
+        f"вайбы {u['vibes']} · лайков получил {d['got']['likes']} · пар {d['mt']} · жалоб {rep_total}",
+    ]
+    return "\n".join(lines)
+
+
+def full_profile(d, uid):
+    u = d["u"]
+    got, gave, ref = d["got"], d["gave"], d["ref"]
+    status = ["подтверждена ✅" if u["verified"] == 1 else "не подтверждена"]
+    if u["banned"] == 1:
+        status.append("ЗАБЛОКИРОВАНА 🚫")
+    if u["hidden"] == 1:
+        status.append("скрыта из ленты")
+    look = {"m": "парней", "f": "девушек", "any": "всех"}.get(u["looking"] or "", "не указано")
+    reps = d["reps"]
+    rep_total = sum(r["n"] for r in reps)
+    lines = [
+        f"👤 {u['name'] or '-'}, {u['age'] or '?'} · {u['city'] or 'город не указан'}",
+        f"{gender_word(u)}, ищет: {look}",
+        f"@{u['username'] or '-'} · id {uid}",
+        "Анкета: " + ", ".join(status),
+        f"Настроение: {u['mood']}" if u["mood"] else None,
+        f"О себе: {u['bio']}" if u["bio"] else "О себе: не заполнено",
+        f"Интересы: {u['interests'].replace(',', ', ')}" if u["interests"] else None,
+        "",
+        f"💎 Вайбы: {u['vibes']} · серия входов: {u['streak'] or 0} дн.",
+        f"❤️ Получил: лайков {got['likes']}, дизлайков {got['passes']}, пар {d['mt']}",
+        f"👉 Поставил: лайков {gave['likes']} (суперлайков {gave['supers']}), "
+        f"дизлайков {gave['passes']}, пропусков {gave['skips']}",
+        f"🚩 Жалоб на него: {rep_total}"
+        + (" (" + ", ".join(f"{r['reason'] or 'Другое'}: {r['n']}" for r in reps) + ")" if reps else "")
+        + f" · сам подавал жалоб: {d['made']}",
+        f"👥 Друзей: приглашено {ref['invited']}, активных {ref['active']}",
+    ]
+    return "\n".join(x for x in lines if x is not None)[:4000]
+
+
+async def admin_error(uid, e):
+    logging.exception("admin profile failed")
+    try:   # чтобы сбой был виден сразу, без захода в логи Render
+        await bot.send_message(ADMIN_ID, f"⚠️ Не удалось собрать анкету id {uid}: {type(e).__name__}: {str(e)[:300]}")
+    except Exception:
+        pass
+
+
+async def send_card(uid, caption, kb=None, d=None):
+    """Одна карточка для модератора: фото анкеты (до ADMIN_PHOTOS) + подпись. Без фото: просто текст.
+    Кнопки (kb) вешаются на одиночное фото или текст; к альбому Telegram их не принимает."""
+    d = d or await load_profile(uid)
+    caption = caption[:1020]
+    photos = d["photos"][:ADMIN_PHOTOS] if d else []
+    if len(photos) == 1:
+        await bot.send_photo(ADMIN_ID, BufferedInputFile(photos[0], "p0.jpg"), caption=caption, reply_markup=kb)
+    elif len(photos) > 1:
+        await bot.send_media_group(ADMIN_ID, [
+            InputMediaPhoto(media=BufferedInputFile(p, f"p{i}.jpg"), caption=caption if i == 0 else None)
+            for i, p in enumerate(photos)])
+        return "album"
+    else:
+        await bot.send_message(ADMIN_ID, caption, reply_markup=kb)
+    return "single"
+
+
 async def send_profile_to_admin(uid):
-    """Анкета человека для модератора: фото, описание, возраст и статистика. Простой текст, без разметки."""
+    """Полная анкета по кнопке «Подробнее»: все фото и полный текст со статистикой."""
     if not ADMIN_ID:
         return
     try:
-        async with pool.acquire() as c:
-            u = await c.fetchrow("SELECT * FROM users WHERE telegram_id=$1", uid)
-            if not u:
-                await bot.send_message(ADMIN_ID, f"Анкета id {uid}: пользователь не найден.")
-                return
-            photos = [bytes(r["data"]) for r in await c.fetch(
-                "SELECT data FROM user_photos WHERE user_id=$1 ORDER BY slot", uid)]
-            got = await c.fetchrow(
-                "SELECT count(*) FILTER (WHERE action IN ('like','super')) AS likes, "
-                "count(*) FILTER (WHERE action='pass') AS passes FROM likes WHERE target_id=$1", uid)
-            gave = await c.fetchrow(
-                "SELECT count(*) FILTER (WHERE action IN ('like','super')) AS likes, "
-                "count(*) FILTER (WHERE action='super') AS supers, "
-                "count(*) FILTER (WHERE action='pass') AS passes, "
-                "count(*) FILTER (WHERE action='skip') AS skips FROM likes WHERE user_id=$1", uid)
-            mt = await c.fetchval("SELECT count(*) FROM users u WHERE u.age IS NOT NULL AND "
-                                  + MATCH_SQL.format(o="u.telegram_id"), uid)
-            reps = await c.fetch("SELECT reason, count(*) AS n FROM reports WHERE target_id=$1 "
-                                 "GROUP BY reason ORDER BY n DESC", uid)
-            made = await c.fetchval("SELECT count(*) FROM reports WHERE user_id=$1", uid)
-            ref = await ref_info(c, uid)
-        status = ["подтверждена ✅" if u["verified"] == 1 else "не подтверждена"]
-        if u["banned"] == 1:
-            status.append("ЗАБЛОКИРОВАНА 🚫")
-        if u["hidden"] == 1:
-            status.append("скрыта из ленты")
-        who = {"m": "парень", "f": "девушка"}.get(u["gender"] or "", "пол не указан")
-        look = {"m": "парней", "f": "девушек", "any": "всех"}.get(u["looking"] or "", "не указано")
-        rep_total = sum(r["n"] for r in reps)
-        lines = [
-            f"👤 {u['name'] or '-'}, {u['age'] or '?'} · {u['city'] or 'город не указан'}",
-            f"{who}, ищет: {look}",
-            f"@{u['username'] or '-'} · id {uid}",
-            "Анкета: " + ", ".join(status),
-            f"Настроение: {u['mood']}" if u["mood"] else None,
-            f"О себе: {u['bio']}" if u["bio"] else "О себе: не заполнено",
-            f"Интересы: {u['interests'].replace(',', ', ')}" if u["interests"] else None,
-            "",
-            f"💎 Вайбы: {u['vibes']} · серия входов: {u['streak'] or 0} дн.",
-            f"❤️ Получил: лайков {got['likes']}, дизлайков {got['passes']}, пар {mt}",
-            f"👉 Поставил: лайков {gave['likes']} (суперлайков {gave['supers']}), "
-            f"дизлайков {gave['passes']}, пропусков {gave['skips']}",
-            f"🚩 Жалоб на него: {rep_total}" + (" (" + ", ".join(f"{r['reason'] or 'Другое'}: {r['n']}" for r in reps) + ")" if reps else "")
-            + f" · сам подавал жалоб: {made}",
-            f"👥 Друзей: приглашено {ref['invited']}, активных {ref['active']}",
-        ]
-        text = "\n".join(x for x in lines if x is not None)[:4000]
-        cap = text if len(text) <= 1000 else None   # подпись к фото максимум 1024 символа
+        d = await load_profile(uid)
+        if not d:
+            await bot.send_message(ADMIN_ID, f"Анкета id {uid}: пользователь не найден.")
+            return
+        photos = d["photos"]
         if len(photos) == 1:
-            await bot.send_photo(ADMIN_ID, BufferedInputFile(photos[0], "p0.jpg"), caption=cap)
+            await bot.send_photo(ADMIN_ID, BufferedInputFile(photos[0], "p0.jpg"))
         elif len(photos) > 1:
-            await bot.send_media_group(ADMIN_ID, [
-                InputMediaPhoto(media=BufferedInputFile(p, f"p{i}.jpg"), caption=cap if i == 0 else None)
-                for i, p in enumerate(photos[:10])])
-        if not (photos and cap):
-            await bot.send_message(ADMIN_ID, text)
+            await bot.send_media_group(ADMIN_ID, [InputMediaPhoto(media=BufferedInputFile(p, f"p{i}.jpg"))
+                                                  for i, p in enumerate(photos[:10])])
+        await bot.send_message(ADMIN_ID, full_profile(d, uid))
     except Exception as e:
-        logging.exception("send_profile_to_admin failed")
-        try:   # чтобы сбой был виден сразу, без захода в логи Render
-            await bot.send_message(ADMIN_ID, f"⚠️ Не удалось собрать анкету id {uid}: {type(e).__name__}: {str(e)[:300]}")
-        except Exception:
-            pass
+        await admin_error(uid, e)
+
+
+def info_kb(uid):
+    return InlineKeyboardButton(text="📊 Подробнее", callback_data=f"info:{uid}")
 
 
 async def notify_admin(target, name, n, reason, reporter=None):
+    """Жалоба: ОДНО сообщение (фото + короткая анкета + причина) с кнопками решения."""
     if not ADMIN_ID:
         return
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🚫 Заблокировать аккаунт", callback_data=f"ban:{target}"),
-        InlineKeyboardButton(text="✅ Не блокировать", callback_data=f"dis:{target}")]])
-    await send_profile_to_admin(target)   # сначала анкета, кнопки решения остаются в самом низу
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚫 Заблокировать", callback_data=f"ban:{target}"),
+         InlineKeyboardButton(text="✅ Не блокировать", callback_data=f"dis:{target}")],
+        [info_kb(target)]])
     try:
+        d = await load_profile(target)
         who = ""
         if reporter:
             async with pool.acquire() as c:
                 r = await c.fetchrow("SELECT name, username FROM users WHERE telegram_id=$1", reporter)
             who = f"\nПожаловался: {(r['name'] if r else None) or '-'}, @{(r['username'] if r else None) or '-'} (id {reporter})"
-        await bot.send_message(ADMIN_ID, f"🚩 Жалоба на {name} (id {target})\nПричина: {reason}\n"
-                                         f"Всего жалоб: {n}{who}", reply_markup=kb)
-    except Exception:
-        pass
+        head = f"🚩 Жалоба · причина: {reason} · всего жалоб: {n}{who}\n\n"
+        body = short_profile(d, target) if d else f"{name} (id {target})"
+        res = await send_card(target, head + body, kb, d)
+        if res == "album":   # несколько фото: кнопки идут отдельным коротким сообщением
+            await bot.send_message(ADMIN_ID, f"Решение по жалобе на {name}:", reply_markup=kb)
+    except Exception as e:
+        await admin_error(target, e)
 
 
 async def api_report(request):
@@ -1366,14 +1438,18 @@ async def got_circle(message: Message):
         await c.execute(
             "INSERT INTO verifications (user_id, status) VALUES ($1,'pending') "
             "ON CONFLICT (user_id) DO UPDATE SET status='pending', comment=NULL, created=now()", uid)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="✅ Одобрить", callback_data=f"ver:ok:{uid}"),
-        InlineKeyboardButton(text="❌ Отклонить", callback_data=f"ver:no:{uid}")]])
-    await send_profile_to_admin(uid)   # фото анкеты с описанием, возрастом и статистикой в подписи
-    await bot.send_video_note(ADMIN_ID, message.video_note.file_id)   # кружок сразу под анкетой
-    who = {"m": "парень", "f": "девушка"}.get(u["gender"] or "", "пол не указан")
-    await bot.send_message(ADMIN_ID, f"Подтверждение анкеты\n{u['name']}, {u['age']}, {who}, @{u['username'] or '-'} (id {uid})\n"
-                                     f"Нужный жест: {gesture[0]} {gesture[1]}", reply_markup=kb)
+    try:
+        d = await load_profile(uid)
+        card = ("🔎 Проверка анкеты · нужный жест: " + f"{gesture[0]} {gesture[1]}\n\n"
+                + (short_profile(d, uid) if d else f"{u['name']}, {u['age']} (id {uid})"))
+        await send_card(uid, card, None, d)
+    except Exception as e:
+        await admin_error(uid, e)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Одобрить", callback_data=f"ver:ok:{uid}"),
+         InlineKeyboardButton(text="❌ Отклонить", callback_data=f"ver:no:{uid}")],
+        [info_kb(uid)]])
+    await bot.send_video_note(ADMIN_ID, message.video_note.file_id, reply_markup=kb)   # кнопки на самом кружке
     await message.answer("Кружок отправлен на проверку. Когда проверим, напишем сюда.")
 
 
@@ -1406,6 +1482,30 @@ async def finish_verify(uid, ok, comment=None):
         pass
 
 
+async def mark_done(cb, mark):
+    """Подписывает решение под карточкой: для текста, фото (подпись) и кружка (отдельный ответ)."""
+    m = cb.message
+    try:
+        if m.text is not None:
+            await m.edit_text(m.text + mark, reply_markup=None)
+        elif m.caption is not None:
+            await m.edit_caption(caption=(m.caption + mark)[:1024], reply_markup=None)
+        else:
+            await m.edit_reply_markup(reply_markup=None)
+            await bot.send_message(ADMIN_ID, mark.strip(), reply_to_message_id=m.message_id)
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("info:"))
+async def on_info(cb: CallbackQuery):
+    if cb.from_user.id != ADMIN_ID:
+        await cb.answer()
+        return
+    await cb.answer()
+    await send_profile_to_admin(int(cb.data.split(":")[1]))
+
+
 @router.callback_query(F.data.startswith("ver:"))
 async def on_verify(cb: CallbackQuery):
     if cb.from_user.id != ADMIN_ID:
@@ -1428,10 +1528,7 @@ async def on_verify(cb: CallbackQuery):
         reject_wait.pop(ADMIN_ID, None)
         await finish_verify(uid, False)
         mark = "\n\n❌ Отклонено без комментария"
-    try:
-        await cb.message.edit_text((cb.message.text or "") + mark, reply_markup=None)
-    except Exception:
-        pass
+    await mark_done(cb, mark)
     await cb.answer("Готово")
 
 
@@ -1444,10 +1541,7 @@ async def on_ban(cb: CallbackQuery):
     BANNED.add(uid)
     async with pool.acquire() as c:
         await c.execute("UPDATE users SET banned=1 WHERE telegram_id=$1", uid)
-    try:
-        await cb.message.edit_text((cb.message.text or "") + "\n\n🚫 Аккаунт заблокирован", reply_markup=None)
-    except Exception:
-        pass
+    await mark_done(cb, "\n\n🚫 Аккаунт заблокирован")
     await cb.answer("Заблокирован")
 
 
@@ -1502,11 +1596,7 @@ async def on_dismiss(cb: CallbackQuery):
     if cb.from_user.id != ADMIN_ID:
         await cb.answer()
         return
-    try:
-        await cb.message.edit_text((cb.message.text or "") + "\n\n✅ Оставлено, аккаунт не заблокирован",
-                                   reply_markup=None)
-    except Exception:
-        pass
+    await mark_done(cb, "\n\n✅ Оставлено, аккаунт не заблокирован")
     await cb.answer("Готово")
 
 
