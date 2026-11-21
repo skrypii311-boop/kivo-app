@@ -22,7 +22,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .vibes{display:flex;gap:6px;align-items:center;padding:6px 12px;border-radius:99px;background:var(--sf);border:1px solid var(--ln);font-weight:500;font-size:14px}
 .vibes svg{width:15px;height:15px;color:var(--ac)}
 main{flex:1;min-height:0;position:relative}
-section{position:absolute;inset:0;display:none;flex-direction:column;padding:6px 16px 12px;overflow-y:auto}
+section{position:absolute;inset:0;display:none;flex-direction:column;padding:6px 16px 12px;overflow-y:auto;overflow-x:hidden}
 section.on{display:flex}
 /* feed */
 .stack{flex:1;position:relative;min-height:0}
@@ -152,7 +152,7 @@ textarea{resize:none;line-height:1.4;min-height:84px;display:block}
 .big{display:flex;align-items:center;gap:14px;padding:16px;border-radius:20px;background:var(--sf);border:1px solid var(--ln)}
 .big svg{width:44px;height:44px;color:var(--ac)}.big b{font-size:32px;line-height:1}
 .bar{height:8px;border-radius:4px;background:var(--sf2);overflow:hidden;margin:0 0 8px}.bar i{display:block;height:100%;background:var(--ac);border-radius:4px}
-.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 10px}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0 0 10px}
 .day{text-align:center;padding:8px 2px;border-radius:12px;background:var(--sf);border:1px solid var(--ln);font-size:12px;color:var(--mu)}
 .day b{display:block;font-size:14px;color:var(--tx);margin-top:2px}
 .day.done{background:var(--grad);color:#fff;border-color:transparent}.day.done b{color:#fff}
@@ -175,7 +175,7 @@ select:disabled{opacity:.5}
 .hero .hfire{font-size:48px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
 .hero b{font-size:38px;line-height:1}
 .gift{display:inline-block;margin-top:8px;padding:5px 11px;border-radius:99px;background:rgba(255,255,255,.22);font-size:13px;font-weight:500}
-.pbar{height:12px;border-radius:99px;background:var(--sf2);overflow:hidden}
+.pbar{margin:14px 2px 0;height:8px;border-radius:99px;background:var(--sf2);overflow:hidden}
 .pbar i{display:block;height:100%;border-radius:99px;background:var(--grad);transition:width .4s}
 .day i{display:block;font-style:normal;font-size:15px;line-height:1.5}
 .hw{padding:14px 14px 4px;border-radius:18px;background:var(--acs);border:1px solid var(--ln)}
@@ -340,6 +340,13 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .stt{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;background:var(--sf2);color:var(--mu);font-size:12px;line-height:1.4;white-space:nowrap}
 .stt b{font-weight:700}
 .stt.on{background:var(--acs);color:var(--ac)}
+.hero{margin:0 2px}
+#streak .stats{margin:14px 2px 0}.stats.two div{padding:12px 4px}
+.cap{display:block;text-align:center;font-size:12px;color:var(--mu);margin:2px 0 0}
+#friends .linkbox{margin-top:10px}
+#friends .btn{margin-left:0}
+.lead{color:var(--mu);font-size:14px;margin:-4px 2px 6px}
+.day.today b,.day.done b{font-weight:700}
 </style>
 </head>
 <body>
@@ -516,7 +523,7 @@ function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card
 function settle(c){if(c)c.remove();var s=$('#stack');if(!s.querySelector('.card')||!deck.length){draw();return}ensureBack()}
 function draw(){
   var s=$('#stack');s.innerHTML='';
-  if(!deck.length){s.innerHTML=feedBusy?'<div class="empty"><h3>Ищем анкеты…</h3></div>':'<div class="empty"><h3>Анкеты закончились</h3><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
+  if(!deck.length){s.innerHTML=feedBusy?'<div class="empty"><h3>Ищем анкеты…</h3></div>':'<div class="empty"><h3>Анкеты закончились</h3><p>Загляни позже</p><button class="btn ghost" style="margin-top:14px" data-act="reload">Обновить</button></div>';$('.acts').style.display='none';return}
   $('.acts').style.display='';deck.slice(0,3).forEach(preload);
   var f=mkCard(deck[0]);s.appendChild(f);drag(f,deck[0]);ensureBack();
 }
@@ -540,7 +547,7 @@ function drag(c,p){
 function askRewind(){
   var pv=hist[hist.length-1];
   if(!pv){toast('Нет анкеты, к которой можно вернуться');return}
-  sheet('<h3>Вернуться к «'+esc(pv.name)+'»?</h3><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
+  sheet('<h3>Вернуться к «'+esc(pv.name)+'»?</h3><p>25 вайбов · у тебя '+(me.vibes||0)+'</p><button class="btn" data-act="rwgo">Заплатить 25 вайбов</button><button class="btn ghost" data-act="close">Отмена</button>')
 }
 var OUT={like:'translateY(-125%)',pass:'translateY(-125%)',super:'translateY(-125%)',skip:'translateY(-125%)'};
 function fly(action){
@@ -569,7 +576,7 @@ function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
     pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=25});setVibes(r.vibes-sp);setInfo(I2)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><p>'+(action==='super'?'Суперлайк сработал':'Вы понравились друг другу')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
     if(deck.length<3)loadFeed();
   },function(e){
     if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
@@ -660,7 +667,7 @@ function loadPairs(){return api('/api/matches').then(function(d){
 }).catch(function(){})}
 function renderList(){
   var l=$('#list');
-  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3></div>';return}
+  if(!pairs.length){l.innerHTML='<div class="empty" style="margin-top:80px"><h3>Пока нет пар</h3><p>Ставь ❤️ в ленте, и пары появятся здесь</p></div>';return}
   l.innerHTML=pairs.map(function(p){var u=unread(p),sub=p.last?(p.last_me?'Вы: ':'')+p.last:'Новая пара, напиши первым';
     return '<button class="row'+(u?' unread':'')+'" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'"><div class="av" style="--h:'+(p.id%360)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="">':esc(p.name[0]))+'</div><div><b>'+esc(p.name)+', '+p.age+vf(p)+'</b><small>'+esc(sub)+'</small></div>'+(p.last_ts?'<span class="tm">'+fmtL(p.last_ts)+'</span>':'')+(u?'<span class="ud"></span>':'')+'</button>'}).join('');
 }
@@ -716,7 +723,7 @@ function leaveChat(){$('#peer').classList.remove('on');clearInterval(poll);cur=n
 
 /* жалобы и подтверждение */
 var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
-function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
+function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3><p>Анкета скроется у тебя, жалобу проверит модератор</p>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
 function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me||me.persona){v.style.display='none';return}v.style.display='flex';
   var btn='<button class="btn" style="padding:8px 14px" data-act="verify">Пройти</button>';
   v.innerHTML=me.verified?'<span class="vf lg">'+ic('check',14)+'</span><span>Анкета подтверждена</span>':me.vstatus==='pending'?'<span>Кружок на проверке</span>':me.vstatus==='rejected'?'<span style="flex:1">Отклонено'+(me.vcomment?': '+esc(me.vcomment):'')+'</span>'+btn:'<span style="flex:1">Подтверди анкету: +50 вайбов</span>'+btn}
@@ -792,12 +799,12 @@ function openVibes(){
 }
 function vibeSheet(){
   var ch=me.channel&&!me.channel_done&&!me.persona;
-  sheet('<h3>Вайбы</h3>'+
+  sheet('<h3>Вайбы</h3><p>Тратятся на суперлайки, возврат анкеты и свайпы</p>'+
     '<div class="rule"><b>25</b><span>суперлайк · возврат анкеты</span></div>'+
     '<div class="rule"><b>+50</b><span>подтверждение анкеты</span></div>'+
     '<div class="rule"><b>+10</b><span>за друга</span></div>'+
     '<div class="rule"><b>5–40</b><span>серия входов</span></div>'+(ch?'<div class="rule"><b>+30</b><span>подписка на канал</span></div>':'')+
-    (ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
+    '<p>Бесплатно: 20 свайпов каждые 4 часа</p>'+(ch?'<button class="btn ghost" data-act="chan">Открыть канал (+30)</button><button class="btn ghost" data-act="chk">Проверить подписку</button>':'')+'<button class="btn" data-act="shop">Купить свайпы</button><button class="btn ghost" data-act="close">Закрыть</button>')
 }
 
 /* страница собеседника */
@@ -835,10 +842,11 @@ function swipeShop(empty){
 /* вкладка «Друзья» */
 function renderFriends(){
   var r=me.ref||{invited:0,active:0,earned:0,pending:0};
-  $('#friends').innerHTML='<h1>Друзья</h1>'+
+  $('#friends').innerHTML='<h1>Друзья</h1><p class="lead">+10 вайбов за каждого друга, который освоился в KIVO</p>'+
     '<div class="stats"><div><b>'+r.invited+'</b><span>Приглашено</span></div><div><b>'+r.active+'</b><span>Активны</span></div><div><b>'+r.earned+'</b><span>Вайбов</span></div></div>'+
     '<div class="linkbox">'+esc(me.ref_link||'')+'</div>'+
-    '<button class="btn" data-act="refshare">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>';
+    '<button class="btn" data-act="refshare" style="margin-top:12px">Пригласить друга</button><button class="btn ghost" data-act="refcopy">Скопировать ссылку</button>'+
+    '<div class="cap" style="margin-top:14px">Друг создаёт анкету, делает 7 свайпов и ставит 3 лайка</div>'+(r.pending?'<div class="cap">Осваиваются: '+r.pending+'</div>':'');
 }
 
 /* вкладка «Серия» */
@@ -846,15 +854,17 @@ var SB=[5,10,20,25,30,35,40];
 function plural(n,a,b,c){var x=n%10,y=n%100;return y>10&&y<15?c:x===1?a:x>1&&x<5?b:c}
 function dayWord(n){return plural(n,'день','дня','дней')}
 function renderStreak(){
-  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||15,nl=i.need_likes==null?3:i.need_likes,ds=i.done_swipes||0,dl=i.done_likes||0,pct=Math.min(100,Math.round((Math.min(ds,ns)+Math.min(dl,nl))/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),sw=i.swipes;
+  var i=me.info||{},s=i.streak||0,ns=i.need_swipes||15,nl=i.need_likes==null?3:i.need_likes,ds=Math.min(i.done_swipes||0,ns),dl=Math.min(i.done_likes||0,nl),pct=Math.min(100,Math.round((ds+dl)/(ns+nl)*100)),cells='',today=i.claimed?0:Math.min(s+1,7),
+      rw=i.claimed?SB[Math.min(Math.max(s,1),7)-1]:(i.reward||5);
   for(var d=1;d<=7;d++){var dn=d<=Math.min(s,7),td=d===today;
     cells+='<div class="day'+(dn?' done':'')+(td?' today':'')+'"><span>'+(d===7?'7+':d)+'</span><i>'+(dn?'✅':td?'🎁':'✨')+'</i><b>+'+SB[d-1]+'</b></div>'}
   $('#streak').innerHTML='<h1>Серия</h1>'+
-    '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+'</span></div>'+
-    '<div class="gift">'+(i.claimed?'✅ +'+(i.reward||5)+' получено':'🎁 +'+(i.reward||5)+' вайбов сегодня')+'</div></div></div>'+
+    '<div class="hero"><div class="hfire">🔥</div><div><div><b>'+s+'</b> <span>'+dayWord(s)+' подряд</span></div>'+
+    '<div class="gift">'+(i.claimed?'✅ +'+rw+' получено':'🎁 +'+rw+' вайбов за сегодня')+'</div></div></div>'+
     '<div class="pbar"><i style="width:'+(i.claimed?100:pct)+'%"></i></div>'+
-    '<div class="sub" style="margin-top:8px">'+(i.claimed?'До завтра':'👆 '+Math.min(ds,ns)+'/'+ns+(nl?' · ❤️ '+Math.min(dl,nl)+'/'+nl:''))+'</div>'+
-    '<div class="days" style="margin-top:14px">'+cells+'</div>';
+    '<div class="stats two"><div><b>'+ds+'/'+ns+'</b><span>Свайпы</span></div>'+(nl?'<div><b>'+dl+'/'+nl+'</b><span>Лайки</span></div>':'')+'</div>'+
+    '<div class="lbl">Награды</div><div class="days">'+cells+'</div>'+
+    '<div class="cap">'+(i.claimed?'Заходи завтра, чтобы продолжить серию':'Пропустишь день — серия начнётся заново')+'</div>';
 }
 
 /* действия */
@@ -884,7 +894,7 @@ document.addEventListener('click',function(e){
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
   else if(a==='rep'||a==='blk'){var id=repId;closeSheet();api('/api/report',{target:id,report:a==='rep',reason:t.dataset.r}).catch(function(){});deck=deck.filter(function(x){return x.id!==id});draw();if(cur&&cur.id===id){leaveChat();loadPairs()}toast('Готово, аккаунт скрыт')}
-  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3><p>Запиши кружок с жестом из бота. +50 вайбов.</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>');
+  else if(a==='verify')sheet('<h3>Подтверждение анкеты</h3><p>Запиши кружок с жестом, который покажет бот. Увидит только модератор. +50 вайбов.</p><button class="btn" data-act="vgo">Записать кружок в боте</button><button class="btn ghost" data-act="close">Позже</button>');
   else if(a==='vgo'){closeSheet();var u='https://t.me/'+me.bot+'?start=verify';try{TG.openTelegramLink(u)}catch(e){window.open(u)}setTimeout(function(){try{TG.close()}catch(e){}},400)}
 });
 
@@ -919,7 +929,7 @@ function boot(){
   try{TG.ready();TG.expand()}catch(e){}
   try{TG.disableVerticalSwipes()}catch(e){}
   try{TG.BackButton.onClick(function(){if($('#peer').classList.contains('on')){closePeer();return}if($('#admin').classList.contains('on')){adBack();return}if(cur){leaveChat();loadPairs()}})}catch(e){}
-  if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3></div>';return}
+  if(!TG||!TG.initData){document.getElementById('app').innerHTML='<div class="empty" style="margin:auto;padding:30px"><h3>Открой KIVO в Telegram</h3><p>Приложение работает внутри бота</p></div>';return}
   try{if(localStorage.getItem('kv_hint'))hideHint()}catch(e){}
   fillForm({});load();
 }
