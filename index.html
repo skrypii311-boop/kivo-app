@@ -320,6 +320,22 @@ header{padding:4px 12px 2px}
 #feed{padding:0 6px 4px}
 .prog:empty{display:none}
 .prog{padding:0 0 2px}
+/* гармоничные отступы ленты: одинаковый воздух сверху и по бокам, элементы на карточке на одной сетке */
+header{padding:10px 14px 10px}
+#feed{padding:0 10px 8px}
+.pdots{top:14px;left:16px;right:16px}
+.mood{top:30px;left:16px}
+.more{top:26px;right:16px}
+.stamp{top:30px}
+/* обводка карточки: раньше border в 1px сдвигал слой с фото внутрь и между фото и краем просвечивал фон,
+   отсюда «грязная» рамка. Теперь рамки нет, фото занимает всю карточку, а обводка рисуется поверх тонким кольцом */
+.card{border:0;isolation:isolate;box-shadow:0 14px 30px -18px rgba(20,22,60,.55),0 2px 6px -2px rgba(20,22,60,.18)}
+.card .pl{border-radius:inherit}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,255,.28)}
+.card.back{box-shadow:none}
+:root[data-theme="dark"] .card{box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}}
 </style>
 </head>
 <body>
