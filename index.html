@@ -455,12 +455,12 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
         <div class="lochint warn" id="gifthint" style="display:none;margin:0 0 10px"><span>🎁</span><span>Тебя пригласил друг: после создания анкеты получишь +10 вайбов</span></div><div class="pgrid" id="pgrid"></div><div class="prog" style="padding:4px 0 0">До 3 фото</div><input type="file" id="pf" accept="image/*" hidden>
         <label class="l" for="fn">Имя</label><input id="fn" maxlength="30" autocomplete="off">
         <label class="l" for="fu">Username</label><input id="fu" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="например, ivan_2000"><div class="uhint" id="uhint"></div>
-        <label class="l" for="fa">Возраст</label><input id="fa" type="number" inputmode="numeric" min="18" max="99">
+        <label class="l" for="fa">Возраст</label><input id="fa" type="number" inputmode="numeric">
         <label class="l">Мой пол</label><div class="seg" id="gen"><button type="button" data-v="m" aria-pressed="false">Парень</button><button type="button" data-v="f" aria-pressed="false">Девушка</button></div>
         <label class="l" for="fb">О себе</label><textarea id="fb" rows="3" maxlength="140" placeholder="Пара фраз о тебе"></textarea>
         <label class="l">Кого показывать</label><div class="seg" id="look"><button type="button" data-v="f" aria-pressed="false">Девушек</button><button type="button" data-v="m" aria-pressed="false">Парней</button><button type="button" data-v="any" aria-pressed="false">Без разницы</button></div>
         <label class="l" id="agel">Возраст, который тебе интересен</label>
-        <div class="rng"><div class="tr"></div><div class="fl" id="rfl"></div><input type="range" id="rmin" min="18" max="60" value="18" aria-label="Возраст от"><input type="range" id="rmax" min="18" max="60" value="60" aria-label="Возраст до"></div>
+        <div class="rng"><div class="tr"></div><div class="fl" id="rfl"></div><input type="range" id="rmin" aria-label="Возраст от"><input type="range" id="rmax" aria-label="Возраст до"></div>
         <label class="sw" id="visrow" style="display:none"><span>Показывать мою анкету другим</span><input type="checkbox" id="vis" checked></label>
         <div class="err" id="err" role="alert"></div>
         <button class="btn" style="width:100%;margin:6px 0 10px" data-act="save">Сохранить</button>
@@ -557,7 +557,7 @@ function renderProfile(){
 /* анкета */
 function fillForm(p){
   $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';var uw=unameWait(p);fu.disabled=uw>0;uHint(uw>0?'Смена через '+fmtWait(uw):'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
-  if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=p.pref_min||18;$('#rmax').value=(p.pref_max&&p.pref_max<99)?p.pref_max:60;rangeUI();$('#vis').checked=!p.hidden;
+  if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=Math.max(AGE.min,p.pref_min||AGE.min);$('#rmax').value=(p.pref_max&&p.pref_max<AGE.max)?Math.min(AGE.top,p.pref_max):AGE.top;rangeUI();
 }
 var GL={m:'парень',f:'девушка'},LL={m:'парней',f:'девушек',any:'всех'};
 function segSet(id,v){document.querySelectorAll(id+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v))})}
@@ -570,13 +570,13 @@ $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(
   uHint('Проверяем…','');
   uT=setTimeout(function(){api('/api/username?u='+encodeURIComponent(v)).then(function(r){if($('#fu').value!==v)return;uHint(r.ok?'Username свободен':r.reason,r.ok?'good':'bad')}).catch(function(){})},350)};
 function save(){
-  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=60?99:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
+  var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=AGE.top?AGE.max:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
   $('#err').textContent='';
   if(!$('#fu').disabled&&!/^[A-Za-z0-9_]{3,20}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, только английские буквы, цифры и _';return}
   if(!b.name||!b.age){$('#err').textContent='Заполни имя и возраст';return}
   if(!b.gender){$('#err').textContent='Выбери свой пол';return}
   if(!b.looking){$('#err').textContent='Выбери, кого показывать в ленте';return}
-  if(b.age<18){$('#err').textContent='KIVO только для тех, кому 18 и больше';return}
+  if(b.age<AGE.min||b.age>AGE.max){$('#err').textContent='KIVO только для тех, кому '+AGE.min+' и больше';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
   api('/api/me',b).then(function(r){GIFT=(r&&r.gift)||0;return api('/api/me')}).then(function(d){
     var first=!me;me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();setEdit(false);
@@ -805,7 +805,21 @@ function loadMsgs(){
 function leaveChat(){$('#peer').classList.remove('on');clearInterval(poll);cur=null;nsig=null;pend=[];msgItems=[];$('#chat').classList.remove('on');if(me)$('nav').classList.remove('off');try{TG.BackButton.hide()}catch(e){}}
 
 /* жалобы и подтверждение */
-var REASONS=["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет 18 лет","Другое"];
+var AGE={min:13,max:99,top:60};
+function makeReasons(){return ["Фейк или чужие фото","Спам или реклама","Оскорбления или угрозы","Похоже, что нет "+AGE.min+" лет","Другое"]}
+var REASONS=makeReasons();
+function applyAge(lim){
+  if(!lim)return;
+  AGE.min=Math.max(13,parseInt(lim.min,10)||13);
+  AGE.max=Math.max(AGE.min,parseInt(lim.max,10)||99);
+  AGE.top=Math.max(AGE.min,parseInt(lim.top,10)||60);
+  REASONS=makeReasons();
+  var fa=$('#fa');if(fa){fa.min=AGE.min;fa.max=AGE.max}
+  var a=$('#rmin'),b=$('#rmax');
+  if(a){a.min=AGE.min;a.max=AGE.top;if(+a.value<AGE.min)a.value=AGE.min;if(+a.value>AGE.top)a.value=AGE.top}
+  if(b){b.min=AGE.min;b.max=AGE.top;if(+b.value<AGE.min)b.value=AGE.min;if(+b.value>AGE.top)b.value=AGE.top}
+  rangeUI();
+}
 function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+esc(name)+'</h3><p>Анкета скроется у тебя, жалобу проверит модератор</p>'+REASONS.map(function(r){return '<button class="btn ghost" data-act="rep" data-r="'+esc(r)+'">'+esc(r)+'</button>'}).join('')+'<button class="btn ghost" data-act="blk">Только заблокировать</button><button class="btn ghost" data-act="close">Отмена</button>')}
 function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me||me.persona){v.style.display='none';return}v.style.display='flex';
   var btn='<button class="btn" style="padding:8px 14px" data-act="verify">Пройти</button>';
@@ -867,9 +881,9 @@ function ownSwipe(pc,pp){pp=pp||me;
 function renderChannel(){var r=$('#crow');if(!r)return;if(!me||me.persona||!me.channel||me.channel_done){r.style.display='none';return}r.style.display='flex';r.style.flexWrap='wrap';
   r.innerHTML='<span style="flex:1;min-width:150px">@'+esc(me.channel)+': +20 вайбов</span><button class="btn ghost" style="padding:8px 14px" data-act="chan">Канал</button><button class="btn" style="padding:8px 14px" data-act="chk">Проверить</button>'}
 function setInfo(i){if(!i||!me)return;var fresh=i!==me.info;me.info=i;if(fresh&&i.swipes)i.swipes._at=Date.now();normSw(i);var bn=(i.swipes&&i.swipes.bonus)||0;$('#prog').textContent=bn>0?'Куплено свайпов: '+bn:'';if($('#streak').classList.contains('on'))renderStreak()}
-function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
-  var lo=+a.value,hi=+b.value,p=function(v){return (v-18)/42*100};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
-  $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=60?'60+':hi)}
+function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(!a||!b)return;if(+a.value>+b.value){if(src===a)a.value=b.value;else b.value=a.value}
+  var lo=+a.value,hi=+b.value,span=Math.max(1,AGE.top-AGE.min),p=function(v){return Math.max(0,Math.min(100,(v-AGE.min)/span*100))};$('#rfl').style.left=p(lo)+'%';$('#rfl').style.right=(100-p(hi))+'%';
+  $('#agel').textContent='Возраст, который тебе интересен: '+lo+'–'+(hi>=AGE.top?AGE.top+'+':hi)}
 $('#rmin').oninput=function(){rangeUI(this)};$('#rmax').oninput=function(){rangeUI(this)};
 $('#pf').onchange=function(){var f=this.files[0];this.value='';if(!f)return;var img=new Image(),u=URL.createObjectURL(f);
   img.onload=function(){var s=Math.min(1,720/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);
@@ -1105,6 +1119,7 @@ function load(){
   $('#boot').style.display='flex';
   api('/api/me').then(function(d){
     IS_ADMIN=!!d.is_admin;$('#adminb').hidden=!IS_ADMIN;$('#adminb').classList.toggle('act',!!d.persona);
+    applyAge(d.age_limits);
     loadLocal(d.uid,d.persona);
     if(!d.exists){me=null;setEdit(true);$('#gifthint').style.display=d.invited?'':'none';$('#fn').value=d.name||'';myPhotos=(d.photos||[]).slice();renderPhotos();hideBoot();return}
     me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();hideBoot();
