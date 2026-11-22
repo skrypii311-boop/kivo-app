@@ -412,6 +412,14 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
 .vf.lg{width:20px;height:20px;margin:0}.vf.lg svg{width:12px;height:12px}
 .card .vf{width:18px;height:18px;margin:0;background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.38)}
 .card .vf svg{width:11px;height:11px;stroke:#fff;stroke-width:3}
+/* галочка подтверждения: капсула как на референсе (светлая / тёмная тема / поверх фото) */
+.vf,.vf.lg{display:inline-grid;place-items:center;width:26px;height:17px;margin-left:7px;border-radius:99px;background:rgba(81,96,224,.14);box-shadow:none;top:0;vertical-align:middle}
+.vf svg,.vf.lg svg{width:10px;height:10px;stroke:#5160E0;stroke-width:3.4}
+.vf.lg{width:30px;height:19px;margin:0}.vf.lg svg{width:11px;height:11px}
+:root[data-theme="dark"] .vf{background:rgba(157,169,255,.2)}
+:root[data-theme="dark"] .vf svg{stroke:#B7C0FF}
+:root .card .vf{width:28px;height:19px;margin:0;background:rgba(255,255,255,.26);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+:root .card .vf svg{width:11px;height:11px;stroke:#fff;stroke-width:3.4}
 /* магазин вайбов */
 .pk{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-top:8px;padding:12px 14px 12px 16px;border-radius:14px;background:var(--bg);border:1px solid var(--ln);text-align:left}
 .pk .k{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
