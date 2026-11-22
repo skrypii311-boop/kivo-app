@@ -587,7 +587,8 @@ function save(){
   if(b.age<AGE.min||b.age>AGE.max){$('#err').textContent='KIVO только для тех, кому '+AGE.min+' и больше';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
   api('/api/me',b).then(function(r){GIFT=(r&&r.gift)||0;return api('/api/me')}).then(function(d){
-    var first=!me;me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();setEdit(false);
+    var first=!me,old=me,fchg=!!old&&(old.looking!==d.looking||old.gender!==d.gender||old.pref_min!==d.pref_min||old.pref_max!==d.pref_max||!!old.hidden!==!!d.hidden);
+    me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();setEdit(false);if(fchg&&started)resetFeed();
     $('#gifthint').style.display='none';toast(first?(GIFT?'Анкета создана: +'+GIFT+' вайбов в подарок':'Анкета создана'):'Сохранено');if(!started)start()
   }).catch(function(e){$('#err').textContent=e.message});
 }
@@ -602,12 +603,17 @@ function cardHTML(p,own){
   '</div>';
 }
 function resync(){return api('/api/me').then(function(d){var I=d.info,sp=0;pendA.forEach(function(x){bumpInfo(I,x.action);if(x.action==='super')sp+=30});setVibes(d.vibes-sp);setInfo(I)}).catch(function(){})}
+var feedGen=0;
 function loadFeed(){
-  if(feedBusy)return;feedBusy=true;if(!deck.length)draw();
+  if(feedBusy)return;feedBusy=true;var g=feedGen;if(!deck.length)draw();
   api('/api/feed').then(function(d){
+    if(g!==feedGen)return;   // фильтры сменились, пока шёл запрос: ответ устарел
     var ids={};deck.forEach(function(x){ids[x.id]=1});
     d.items.forEach(function(x){if(!ids[x.id]&&!swiped[x.id]&&!REC[x.id]){deck.push(x);ids[x.id]=1}});
-  }).catch(function(e){toast(e.message)}).then(function(){feedBusy=false;if(!lock||!deck.length)settle(null)});
+  }).catch(function(e){if(g===feedGen)toast(e.message)}).then(function(){if(g!==feedGen)return;feedBusy=false;if(!lock||!deck.length)settle(null)});
+}
+function resetFeed(){   // фильтры изменились: выкидываем старую колоду и грузим ленту заново
+  feedGen++;feedBusy=false;deck=[];lock=false;$('#stack').innerHTML='';loadFeed();
 }
 function mkCard(p){var c=document.createElement('div');c.className='card';c.style.setProperty('--h',p.id%360);var pu=(p.photos&&p.photos[p._i||0])||p.photo;c.innerHTML=cardHTML(p);if(pu)setBg(c,pu);return c}
 function ensureBack(){var s=$('#stack');if(deck.length>1&&s.querySelector('.card')&&!s.querySelector('.card.back')){var b=mkCard(deck[1]);b.classList.add('back');b.style.opacity='0';s.insertBefore(b,s.firstChild);setTimeout(function(){b.style.transition='opacity .25s';b.style.opacity=''},30)}}
