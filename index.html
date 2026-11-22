@@ -557,7 +557,7 @@ function renderProfile(){
 /* анкета */
 function fillForm(p){
   $('#fn').value=p.name||'';var fu=$('#fu');fu.value=p.username||'';var uw=unameWait(p);fu.disabled=uw>0;uHint(uw>0?'Смена через '+fmtWait(uw):'','');$('#fa').value=p.age||'';segSet('#gen',p.gender||'');segSet('#look',p.looking||'');$('#fb').value=p.bio||'';
-  if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=Math.max(AGE.min,p.pref_min||AGE.min);$('#rmax').value=(p.pref_max&&p.pref_max<AGE.max)?Math.min(AGE.top,p.pref_max):AGE.top;rangeUI();
+  if(p.photos&&p.photos.length)myPhotos=p.photos.slice();renderPhotos();$('#rmin').value=Math.max(AGE.min,p.pref_min||AGE.min);$('#rmax').value=(p.pref_max&&p.pref_max<AGE.max)?Math.min(AGE.top,p.pref_max):AGE.top;rangeUI();$('#vis').checked=!p.hidden;
 }
 var GL={m:'парень',f:'девушка'},LL={m:'парней',f:'девушек',any:'всех'};
 function segSet(id,v){document.querySelectorAll(id+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v))})}
@@ -810,7 +810,7 @@ function makeReasons(){return ["Фейк или чужие фото","Спам �
 var REASONS=makeReasons();
 function applyAge(lim){
   if(!lim)return;
-  AGE.min=Math.max(13,parseInt(lim.min,10)||13);
+  AGE.min=Math.max(13,parseInt(lim.min,10)||18);
   AGE.max=Math.max(AGE.min,parseInt(lim.max,10)||99);
   AGE.top=Math.max(AGE.min,parseInt(lim.top,10)||60);
   REASONS=makeReasons();
