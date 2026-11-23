@@ -462,7 +462,7 @@ box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 0 rgba(255,255,25
         <div class="ph"><h1 id="meh">Создай анкету</h1><button class="edb" id="ecancel" data-act="editcancel" style="display:none">Отмена</button></div>
         <div class="lochint warn" id="gifthint" style="display:none;margin:0 0 10px"><span>🎁</span><span>Тебя пригласил друг: после создания анкеты получишь +10 вайбов</span></div><div class="pgrid" id="pgrid"></div><div class="prog" style="padding:4px 0 0">До 3 фото</div><input type="file" id="pf" accept="image/*" hidden>
         <label class="l" for="fn">Имя</label><input id="fn" maxlength="30" autocomplete="off">
-        <label class="l" for="fu">Username</label><input id="fu" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="например, ivan_2000"><div class="uhint" id="uhint"></div>
+        <label class="l" for="fu">Username</label><input id="fu" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="например, ivan_2000 (начни с буквы)"><div class="uhint" id="uhint"></div>
         <label class="l" for="fa">Возраст</label><input id="fa" type="number" inputmode="numeric">
         <label class="l">Мой пол</label><div class="seg" id="gen"><button type="button" data-v="m" aria-pressed="false">Парень</button><button type="button" data-v="f" aria-pressed="false">Девушка</button></div>
         <label class="l" for="fb">О себе</label><textarea id="fb" rows="3" maxlength="140" placeholder="Пара фраз о тебе"></textarea>
@@ -580,7 +580,7 @@ $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(
 function save(){
   var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=AGE.top?AGE.max:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
   $('#err').textContent='';
-  if(!$('#fu').disabled&&!/^[A-Za-z0-9_]{3,20}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, только английские буквы, цифры и _';return}
+  if(!$('#fu').disabled&&!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, английские буквы, цифры и _; первой должна быть буква';return}
   if(!b.name||!b.age){$('#err').textContent='Заполни имя и возраст';return}
   if(!b.gender){$('#err').textContent='Выбери свой пол';return}
   if(!b.looking){$('#err').textContent='Выбери, кого показывать в ленте';return}
@@ -668,16 +668,18 @@ function bump(action){var I=me&&me.info;if(!I)return;bumpInfo(I,action);if(actio
 var pendA=[];function pendDel(id){pendA=pendA.filter(function(x){return x.id!==id})}
 function bumpInfo(I,action){I.done_swipes=(I.done_swipes||0)+1;if(action==='like'||action==='super')I.done_likes=(I.done_likes||0)+1;
   var w=I.swipes;if(w){normSw(I);if(w.free_left>0){if(!w.reset_in){w.reset_in=14400;w._at=Date.now()}w.free_left--}else if(w.bonus>0)w.bonus--;w.left=w.free_left+w.bonus}}
-var sendQ=[];
+var sendQ=[],pendIt={},optSheet=null;
+function pairSheet(p,action){sheet('<h3>Пара с '+esc(p.name)+'</h3><p>'+(action==='super'?'Суперлайк сработал':'Вы понравились друг другу')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+function dropOpt(id){if(optSheet!==id)return;optSheet=null;if($('#sheet').querySelector('[data-act="open"][data-id="'+id+'"]'))closeSheet()}   // сервер отказал: прячем окно «Пара»
 function sendSwipe(p,action,tries){
   return api('/api/swipe',{target:p.id,action:action}).then(function(r){
     pqDel(p.id);swPend--;pendDel(p.id);{var I2=r.info,sp=0;pendA.forEach(function(x){bumpInfo(I2,x.action);if(x.action==='super')sp+=30});setVibes(r.vibes-sp);setInfo(I2)}
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
-    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});hap('medium');markKnown(p.id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><p>'+(action==='super'?'Суперлайк сработал':'Вы понравились друг другу')+'</p><button class="btn" data-act="open" data-id="'+p.id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Продолжить смотреть</button>')}
+    if(r.match){hist=hist.filter(function(x){return x.id!==p.id});markKnown(p.id);loadPairs();if(optSheet===p.id)optSheet=null;else{hap('medium');pairSheet(p,action)}}else if(optSheet===p.id)dropOpt(p.id);
     if(deck.length<3)loadFeed();
   },function(e){
     if(!e.status&&tries<2)return new Promise(function(ok){setTimeout(ok,1200)}).then(function(){return sendSwipe(p,action,tries+1)});   // обрыв связи: повторяем, карточку не возвращаем
-    swPend--;pendDel(p.id);
+    swPend--;pendDel(p.id);dropOpt(p.id);
     hist=hist.filter(function(x){return x.id!==p.id});
     if(!e.status){delete swiped[p.id];resync();toast(e.message);return}   // связь оборвалась: свайп остаётся в очереди и уйдёт при следующем открытии
     pqDel(p.id);recDel(p.id);   // связи нет: анкета вернётся с новой лентой, если сервер её не записал
@@ -697,11 +699,17 @@ function decide(action){
   var back=$('#stack .card.back');
   if(back&&deck.length){back.style.transition='transform .28s ease-out,opacity .28s';back.style.opacity='';back.classList.remove('back');drag(back,deck[0]);deck.slice(0,3).forEach(preload)}
   swPend++;pendA.push({id:p.id,action:action});
-  var it={p:p,action:action,sent:false};sendQ.push(it);
-  swq=swq.then(function(){            // свайпы уходят по очереди: сервер и пул соединений маленькие
-    if(it.sent){swPend--;pendDel(p.id);return}       // уже отправлен при сворачивании приложения
+  var it={p:p,action:action,sent:false,pr:null};sendQ.push(it);pendIt[p.id]=it;
+  it.run=function(){                   // отправить именно этот свайп сейчас (один раз)
+    if(it.pr)return it.pr;
     it.sent=true;sendQ=sendQ.filter(function(x){return x!==it});
-    return sendSwipe(p,action,0)
+    it.pr=sendSwipe(p,action,0).then(function(){},function(){}).then(function(){if(pendIt[p.id]===it)delete pendIt[p.id]});
+    return it.pr};
+  if(action==='super'){optSheet=p.id;hap('medium');pairSheet(p,'super');it.run()}   // суперлайк: пара гарантирована, окно сразу, запрос мимо очереди
+  else swq=swq.then(function(){        // обычные свайпы уходят по очереди: сервер и пул соединений маленькие
+    if(it.pr)return it.pr;
+    if(it.sent){swPend--;pendDel(p.id);return}       // уже отправлен при сворачивании приложения
+    return it.run()
   }).then(function(){},function(){});
   if(deck.length<3)loadFeed();
 }
@@ -1114,7 +1122,7 @@ document.addEventListener('click',function(e){
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
   else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+20 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;swq.then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
+  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;var pi=pendIt[pid];(pi&&!(pi.sent&&!pi.pr)?pi.run():Promise.resolve()).then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
