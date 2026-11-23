@@ -100,6 +100,11 @@ nav button[aria-current="page"] svg{color:var(--ac)}
 .chk{display:flex;gap:12px;align-items:center;margin-bottom:18px;font-weight:500}
 .chk input{width:22px;height:22px;accent-color:var(--ac);padding:0}
 .btn:disabled{opacity:.4;cursor:default}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spn{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:8px}
+.btn.ld:disabled{opacity:.75}
+.ld:not(.btn){position:relative;opacity:.6;pointer-events:none}
+.ld:not(.btn)::after{content:"";position:absolute;right:12px;top:50%;margin-top:-8px;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 #toast{position:absolute;left:50%;bottom:76px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -509,6 +514,11 @@ $('#shade').onclick=closeSheet;
 function api(path,b){var o={headers:{"X-Init-Data":TG?TG.initData:"","Content-Type":"application/json"}};if(b){o.method="POST";o.body=JSON.stringify(b);o.keepalive=true}
   var ac=window.AbortController?new AbortController():null,tm=null;if(ac){o.signal=ac.signal;tm=setTimeout(function(){ac.abort()},25000)}
   return fetch(path,o).then(function(r){clearTimeout(tm);return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Ошибка связи");e.status=r.status;e.code=d.code;throw e}return d})},function(x){clearTimeout(tm);throw new Error("Нет связи с сервером, попробуй ещё раз")})}
+function busy(t,p,txt){   // кнопка показывает «Загрузка…», пока идёт запрос; повторное нажатие блокируется
+  if(!t||t.dataset.busy)return p;t.dataset.busy='1';var old=t.innerHTML,isb=t.classList.contains('btn');
+  t.classList.add('ld');if(isb){t.disabled=true;t.innerHTML='<span class="spn"></span>'+(txt||'Загрузка…')}
+  var done=function(){delete t.dataset.busy;t.classList.remove('ld');if(isb){t.disabled=false;if(t.isConnected)t.innerHTML=old}};
+  p.then(done,done);return p}
 function setVibes(v){if(me)me.vibes=v;$('#vn').textContent=v;var b=$('#vhbal');if(b)b.textContent=v;var sb=$('#shbal');if(sb)sb.textContent=v}
 
 /* вкладки */
@@ -577,7 +587,7 @@ $('#fu').oninput=function(){var v=this.value.replace(/[^A-Za-z0-9_]/g,'').slice(
   if(v.length<3){uHint(v?'Минимум 3 символа':'',v?'bad':'');return}
   uHint('Проверяем…','');
   uT=setTimeout(function(){api('/api/username?u='+encodeURIComponent(v)).then(function(r){if($('#fu').value!==v)return;uHint(r.ok?'Username свободен':r.reason,r.ok?'good':'bad')}).catch(function(){})},350)};
-function save(){
+function save(bt){
   var b={gender:segGet('#gen'),looking:segGet('#look'),username:$('#fu').value.trim(),name:$('#fn').value.trim(),age:+$('#fa').value,bio:$('#fb').value.trim(),pref_min:+$('#rmin').value,pref_max:(+$('#rmax').value>=AGE.top?AGE.max:+$('#rmax').value),hidden:!!me&&!$('#vis').checked};
   $('#err').textContent='';
   if(!$('#fu').disabled&&!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(b.username)){$('#err').textContent='Придумай username: 3–20 символов, английские буквы, цифры и _; первой должна быть буква';return}
@@ -586,11 +596,11 @@ function save(){
   if(!b.looking){$('#err').textContent='Выбери, кого показывать в ленте';return}
   if(b.age<AGE.min||b.age>AGE.max){$('#err').textContent='KIVO только для тех, кому '+AGE.min+' и больше';return}
   if(!myPhotos.length){$('#err').textContent='Добавь фото в анкету';return}
-  api('/api/me',b).then(function(r){GIFT=(r&&r.gift)||0;return api('/api/me')}).then(function(d){
+  busy(bt,api('/api/me',b).then(function(r){GIFT=(r&&r.gift)||0;return r&&r.me?r.me:api('/api/me')}).then(function(d){
     var first=!me,old=me,fchg=!!old&&(old.looking!==d.looking||old.gender!==d.gender||old.pref_min!==d.pref_min||old.pref_max!==d.pref_max||!!old.hidden!==!!d.hidden);
     me=d;me._ut=Date.now();setVibes(d.vibes);setInfo(d.info);renderVerify();setEdit(false);if(fchg&&started)resetFeed();
     $('#gifthint').style.display='none';toast(first?(GIFT?'Анкета создана: +'+GIFT+' вайбов в подарок':'Анкета создана'):'Сохранено');if(!started)start()
-  }).catch(function(e){$('#err').textContent=e.message});
+  }).catch(function(e){$('#err').textContent=e.message}),'Загрузка…');
 }
 
 /* лента */
@@ -909,7 +919,7 @@ function rangeUI(src){var a=$('#rmin'),b=$('#rmax');if(!a||!b)return;if(+a.value
 $('#rmin').oninput=function(){rangeUI(this)};$('#rmax').oninput=function(){rangeUI(this)};
 $('#pf').onchange=function(){var f=this.files[0];this.value='';if(!f)return;var img=new Image(),u=URL.createObjectURL(f);
   img.onload=function(){var s=Math.min(1,720/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);
-    cv.toBlob(function(b){fetch('/api/photo?slot='+pickSlot,{method:'POST',headers:{'X-Init-Data':TG.initData,'Content-Type':'application/octet-stream'},body:b}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'Ошибка');return d})}).then(function(d){myPhotos=d.photos;renderPhotos();if(me){me.photos=d.photos;me.photo=d.photos[0]}toast('Фото загружено')}).catch(function(e){toast(e.message)})},'image/jpeg',.82)};
+    toast('Загрузка фото…');cv.toBlob(function(b){fetch('/api/photo?slot='+pickSlot,{method:'POST',headers:{'X-Init-Data':TG.initData,'Content-Type':'application/octet-stream'},body:b}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'Ошибка');return d})}).then(function(d){myPhotos=d.photos;renderPhotos();if(me){me.photos=d.photos;me.photo=d.photos[0]}toast('Фото загружено')}).catch(function(e){toast(e.message)})},'image/jpeg',.82)};
   img.onerror=function(){toast('Не удалось открыть фото')};img.src=u};
 
 /* вайбы */
@@ -1010,20 +1020,20 @@ function payWatch(kind,prev,tries){
     }).catch(function(){setTimeout(function(){step(n+1)},kind==='crypto'?4000:1500)})
   })(0)
 }
-function payStars(pid){
+function payStars(pid,bt){
   if(payBusy)return;payBusy=true;var prev=me.vibes||0;
-  api('/api/pay/stars',{pack:pid}).then(function(r){payBusy=false;
+  busy(bt,api('/api/pay/stars',{pack:pid}).then(function(r){payBusy=false;
     if(TG&&TG.openInvoice){TG.openInvoice(r.link,function(st){if(st==='paid'){toast('Оплачено, зачисляем…');closeSheet();payWatch('stars',prev,0)}else if(st==='failed'){toast('Оплата не прошла')}})}
     else{try{TG.openTelegramLink(r.link)}catch(e){window.open(r.link)}payWatch('stars',prev,0)}
-  }).catch(function(x){payBusy=false;toast(x.message)})
+  }).catch(function(x){payBusy=false;toast(x.message)}))
 }
-function payCrypto(pid){
+function payCrypto(pid,bt){
   if(payBusy)return;payBusy=true;var prev=me.vibes||0;
-  api('/api/pay/crypto',{pack:pid}).then(function(r){payBusy=false;
+  busy(bt,api('/api/pay/crypto',{pack:pid}).then(function(r){payBusy=false;
     sheet('<h3>Оплата криптой</h3><p>Счёт открыт в @CryptoBot. Оплати его, и вайбы придут сами (обычно за минуту).</p><button class="btn" data-act="paychk">Проверить оплату</button><button class="btn ghost" data-act="close">Закрыть</button>');
     try{TG.openTelegramLink(r.url)}catch(e){window.open(r.url)}
     payWatch('crypto',prev,0)
-  }).catch(function(x){payBusy=false;toast(x.message)})
+  }).catch(function(x){payBusy=false;toast(x.message)}))
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&me&&$('#sheet').classList.contains('on')&&/Оплата криптой/.test($('#sheet').textContent)){api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes)}).catch(function(){})}});
 
@@ -1060,14 +1070,14 @@ function openLike(id){
       '<div class="lacts"><button class="btn ghost" data-act="lkno" data-id="'+p.id+'">Пропустить</button><button class="btn" data-act="lkyes" data-id="'+p.id+'">Нравится</button></div>';
     var pc=$('#pgbody .card'),pu=(p.photos&&p.photos[0])||p.photo;if(pu)setBg(pc,pu);ownSwipe(pc,p)})
 }
-function likeAct(id,action){
+function likeAct(id,action,bt){
   var p=LK.filter(function(x){return x.id===id})[0];if(!p)return;
-  api('/api/swipe',{target:id,action:action}).then(function(r){
+  busy(bt,api('/api/swipe',{target:id,action:action}).then(function(r){
     setVibes(r.vibes);setInfo(r.info);LK=LK.filter(function(x){return x.id!==id});swiped[id]=1;deck=deck.filter(function(x){return x.id!==id});
     closePg();renderLikes();updLk();draw();
     if(r.streak)toast('День '+r.streak.day+' подряд: +'+r.streak.bonus+' вайбов');
     if(r.match){markKnown(id);loadPairs();sheet('<h3>Пара с '+esc(p.name)+'</h3><p>Вы понравились друг другу</p><button class="btn" data-act="open" data-id="'+id+'" data-n="'+esc(p.name)+'">Написать</button><button class="btn ghost" data-act="close">Закрыть</button>')}
-  }).catch(function(e){if(e.code==='no_swipes'){closePg();noSwipes()}else toast(e.message)})
+  }).catch(function(e){if(e.code==='no_swipes'){closePg();noSwipes()}else toast(e.message)}))
 }
 
 /* вкладка «Серия» */
@@ -1090,13 +1100,13 @@ function renderStreak(){
 
 /* действия */
 document.addEventListener('click',function(e){
-  var t=e.target.closest('[data-act]');if(!t)return;var a=t.dataset.act;
+  var t=e.target.closest('[data-act]');if(!t||t.dataset.busy)return;var a=t.dataset.act;
   if(a==='like')fly('like');else if(a==='nope')fly('pass');else if(a==='super')fly('super');
   else if(a==='edit')setEdit(true);
   else if(a==='editcancel')setEdit(false);
   else if(a==='close')closeSheet();
   else if(a==='reload')loadFeed();
-  else if(a==='save')save();
+  else if(a==='save')save(t);
   else if(a==='open')openChat(+t.dataset.id,t.dataset.n);
   else if(a==='back'){leaveChat();loadPairs()}
   else if(a==='vibeinfo')openVibes();
@@ -1105,24 +1115,24 @@ document.addEventListener('click',function(e){
   else if(a==='pgclose')closePg();
   else if(a==='vhf'){VH.f=t.dataset.f;var cc=VHC[VH.f];VH.items=cc?cc.items.slice():[];VH.more=cc?cc.more:false;VH.loaded=!!cc;document.querySelectorAll('[data-act="vhf"]').forEach(function(x){x.setAttribute('aria-pressed',String(x===t))});vhRender();vhLoad(true)}
   else if(a==='delacc'){if(me&&me.persona){toast('Анкеты админа удаляются в админ-панели');return}sheet('<h3>Удалить анкету?</h3><p>Фото, лайки, пары и переписки будут стёрты без возможности восстановления. Баланс вайбов сохранится.</p><button class="btn danger" data-act="delgo">Удалить навсегда</button><button class="btn ghost" data-act="close">Отмена</button>')}
-  else if(a==='delgo')api('/api/me/delete',{}).then(function(){closeSheet();try{['kv_rec_','kv_pq_','kv_seen_','kv_known_'].forEach(function(k){localStorage.removeItem(k+UID)})}catch(x){}resetApp();toast('Анкета удалена')}).catch(function(x){closeSheet();toast(x.message)});
+  else if(a==='delgo')busy(t,api('/api/me/delete',{}).then(function(){closeSheet();try{['kv_rec_','kv_pq_','kv_seen_','kv_known_'].forEach(function(k){localStorage.removeItem(k+UID)})}catch(x){}resetApp();toast('Анкета удалена')}).catch(function(x){closeSheet();toast(x.message)}),'Загрузка…');
   else if(a==='lkopen')openLike(+t.dataset.id);
-  else if(a==='lkyes')likeAct(+t.dataset.id,'like');
-  else if(a==='lkno')likeAct(+t.dataset.id,'pass');
+  else if(a==='lkyes')likeAct(+t.dataset.id,'like',t);
+  else if(a==='lkno')likeAct(+t.dataset.id,'pass',t);
   else if(a==='vhmore')vhLoad(false);
   else if(a==='shop'||a==='vshop'||a==='store')openStore();
-  else if(a==='paystars')payStars(t.dataset.p);
-  else if(a==='paycrypto')payCrypto(t.dataset.p);
+  else if(a==='paystars')payStars(t.dataset.p,t);
+  else if(a==='paycrypto')payCrypto(t.dataset.p,t);
   else if(a==='paym'){PAYM=t.dataset.m;if(PG.k==='shop')renderStore();else vibeShopDraw()}
-  else if(a==='paychk')api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes);else toast('Оплата пока не найдена')}).catch(function(x){toast(x.message)});
+  else if(a==='paychk')busy(t,api('/api/pay/status').then(function(d){if(d.vibes>me.vibes)payDone(d.vibes-me.vibes);else toast('Оплата пока не найдена')}).catch(function(x){toast(x.message)}),'Загрузка…');
   else if(a==='peer')openPeer(+t.dataset.id);
   else if(a==='peerclose')closePeer();
-  else if(a==='buy'){var bn=+t.dataset.n;api('/api/swipes/buy',{pack:bn}).then(function(r){setVibes(r.vibes);setInfo(r.info);closeSheet();toast('+'+bn+' свайпов')}).catch(function(x){toast(x.message)})}
+  else if(a==='buy'){var bn=+t.dataset.n;busy(t,api('/api/swipes/buy',{pack:bn}).then(function(r){setVibes(r.vibes);setInfo(r.info);closeSheet();toast('+'+bn+' свайпов')}).catch(function(x){toast(x.message)}))}
   else if(a==='refshare'){var su='https://t.me/share/url?url='+encodeURIComponent(me.ref_link||'')+'&text='+encodeURIComponent('Заходи в KIVO: знакомства в Telegram');try{TG.openTelegramLink(su)}catch(e){window.open(su)}}
   else if(a==='refcopy'){try{navigator.clipboard.writeText(me.ref_link||'').then(function(){toast('Ссылка скопирована')},function(){toast('Не удалось скопировать')})}catch(e){toast('Не удалось скопировать')}}
   else if(a==='chan'){var u2='https://t.me/'+me.channel;try{TG.openTelegramLink(u2)}catch(e){window.open(u2)}}
-  else if(a==='chk'){api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+20 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)})}
-  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;closeSheet();if(!pid)return;var pi=pendIt[pid];(pi&&!(pi.sent&&!pi.pr)?pi.run():Promise.resolve()).then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);draw();toast('Анкета возвращена')}).catch(function(e){if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)})}
+  else if(a==='chk'){busy(t,api('/api/channel',{}).then(function(r){setVibes(r.vibes);me.channel_done=true;closeSheet();renderChannel();toast(r.awarded?'+20 вайбов за подписку':'Задание уже выполнено')}).catch(function(e){toast(e.message)}),'Загрузка…')}
+  else if(a==='rwgo'){var pv=hist[hist.length-1],pid=pv&&pv.id;if(!pid){closeSheet();return}var pi=pendIt[pid];busy(t,(pi&&!(pi.sent&&!pi.pr)?pi.run():Promise.resolve()).then(function(){return api('/api/rewind',{target:pid})}).then(function(r){delete swiped[r.item.id];recDel(r.item.id);pqDel(r.item.id);setVibes(r.vibes);setInfo(r.info);hist=hist.filter(function(x){return x.id!==pid});deck=deck.filter(function(x){return x.id!==r.item.id});deck.unshift(r.item);closeSheet();draw();toast('Анкета возвращена')}).catch(function(e){closeSheet();if(e.status===404||e.status===409)hist=hist.filter(function(x){return x.id!==pid});toast(e.message)}),'Загрузка…')}
   else if(a==='pickphoto')$('#pf').click();
   else if(a==='report'){var p=deck[0];if(p)reportSheet(p.id,p.name)}
   else if(a==='reportchat'){if(cur)reportSheet(cur.id,cur.name)}
