@@ -635,6 +635,7 @@ function draw(){
   var f=mkCard(deck[0]);s.appendChild(f);drag(f,deck[0]);ensureBack();
 }
 function drag(c,p){
+  clearTimeout(tapT);tapT=0;
   var x0=0,y0=0,dx=0,dy=0,on=false,mode='',t0=0,L=c.querySelector('.stamp.l'),N=c.querySelector('.stamp.n'),ps=photoSwipe(c,p),many=p.photos&&p.photos.length>1;
   c.onpointerdown=function(e){if(e.target.closest('.more')||lock||ps.busy())return;on=true;x0=e.clientX;y0=e.clientY;dx=dy=0;mode='';t0=Date.now();c.setPointerCapture(e.pointerId);c.style.transition='none'};
   c.onpointermove=function(e){if(!on)return;dx=e.clientX-x0;dy=e.clientY-y0;
@@ -646,9 +647,10 @@ function drag(c,p){
     c.style.transition='transform .2s';c.style.transform='';L.style.opacity=N.style.opacity=0;
     if(m==='h'){if(many)ps.end(up?dx:0,up&&Date.now()-t0<250)}
     else if(up&&dy>70)askRewind();
-    else if(up&&Math.abs(dy)<8&&Math.abs(dx)<8){var r=c.getBoundingClientRect(),px=(e.clientX-r.left)/r.width;
-      if(many&&(px<.3||px>.7)){ps.go(px>.5?1:-1);lastTap=0}
-      else{var t=Date.now();if(t-lastTap<320){lastTap=0;dbl(c,e.clientX-r.left,e.clientY-r.top)}else lastTap=t}}
+    else if(up&&Math.abs(dy)<8&&Math.abs(dx)<8){var r=c.getBoundingClientRect(),x=e.clientX-r.left,px=x/r.width;
+      if(tapT){clearTimeout(tapT);tapT=0;dbl(c,x,e.clientY-r.top)}   // второй тап в любом месте карточки — лайк
+      else{var d=many&&(px<.3||px>.7)?(px>.5?1:-1):0;
+        tapT=setTimeout(function(){tapT=0;if(d)ps.go(d)},300)}}   // одиночный тап по краю листает фото после паузы
     dx=dy=0};
 }
 function askRewind(){
@@ -856,7 +858,7 @@ function reportSheet(id,name){repId=id;sheet('<h3>Пожаловаться: '+es
 function renderVerify(){renderStats();renderChannel();var v=$('#vrow');$('#visrow').style.display=me?'flex':'none';if(!me||me.persona){v.style.display='none';return}v.style.display='flex';
   var btn='<button class="btn" style="padding:8px 14px" data-act="verify">Пройти</button>';
   v.innerHTML=me.verified?'<span class="vf lg">'+ic('check',14)+'</span><span>Анкета подтверждена</span>':me.vstatus==='pending'?'<span>Кружок на проверке</span>':me.vstatus==='rejected'?'<span style="flex:1">Отклонено'+(me.vcomment?': '+esc(me.vcomment):'')+'</span>'+btn:'<span style="flex:1">Подтверди анкету: +50 вайбов</span>'+btn}
-var myPhotos=[],pickSlot=0,lastTap=0;
+var myPhotos=[],pickSlot=0,tapT=0;
 function renderStats(){var s=me&&me.stats,e=$('#stats');if(!s){e.style.display='none';return}e.style.display='flex';e.innerHTML='<div><b>'+s.likes+'</b><span>Лайки</span></div><div><b>'+s.passes+'</b><span>Дизлайки</span></div><div><b>'+s.matches+'</b><span>Пары</span></div>'}
 function hideBoot(){$('#boot').style.display='none'}
 function deny(m){toast(m);draw()}
